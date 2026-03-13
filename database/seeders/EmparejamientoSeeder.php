@@ -56,8 +56,8 @@ class EmparejamientoSeeder extends Seeder
 
             4 => [
                 ['Bloops','Changos FC'],
-                ['Los Campeones','Gambitos'],
-                ['Apertura Maestra','Gambito de Dama'],
+                ['Los Campeones','Gambito de Dama'],
+                ['Apertura Maestra','Gambitos'],
             ],
 
             5 => [
