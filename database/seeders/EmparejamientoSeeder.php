@@ -165,24 +165,26 @@ class EmparejamientoSeeder extends Seeder
         ];
 
         // nuevo seeder para emparejamientos, con validación de jugadores
-        foreach ($data as $numRonda => $emparejamientos) {
-            $ronda = Ronda::where('numero', $numRonda)->first();
-
-            foreach ($emparejamientos as $emp) {
+        foreach ($emparejamientos as $emp) {
                 $blancasId = $getJ($emp['b']);
                 $negrasId = $getJ($emp['n']);
-
+            
                 if ($blancasId && $negrasId) {
-                    Emparejamiento::firstOrCreate([
-                        'ronda_id' => $ronda->id,
-                        'blancas_id' => $blancasId,
-                        'negras_id' => $negrasId,
-                        'mesa' => $emp['m'],
-                        'estacion' => $emp['e'],
-                        'resultado' => null,
-                    ]);
+                    // Solo buscamos por Ronda y Jugadores para saber si ya existe
+                    Emparejamiento::firstOrCreate(
+                        [
+                            'ronda_id'   => $ronda->id,
+                            'blancas_id' => $blancasId,
+                            'negras_id'  => $negrasId,
+                        ],
+                        [
+                            // Estos campos solo se llenan si el registro NO existe
+                            'mesa'       => $emp['m'],
+                            'estacion'   => $emp['e'],
+                            'resultado'  => null,
+                        ]
+                    );
                 }
-            }
         }
     }
 }
