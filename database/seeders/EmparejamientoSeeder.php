@@ -164,6 +164,7 @@ class EmparejamientoSeeder extends Seeder
             ],
         ];
 
+        // nuevo seeder para emparejamientos, con validación de jugadores
         foreach ($data as $numRonda => $emparejamientos) {
             $ronda = Ronda::where('numero', $numRonda)->first();
 
