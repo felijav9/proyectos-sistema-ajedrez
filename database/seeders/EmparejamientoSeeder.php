@@ -54,6 +54,7 @@ class EmparejamientoSeeder extends Seeder
                 ['Gambito de Dama','Changos FC'],
             ],
 
+            // correccion
             4 => [
                 ['Bloops','Changos FC'],
                 ['Los Campeones','Gambito de Dama'],
