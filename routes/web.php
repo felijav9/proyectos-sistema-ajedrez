@@ -10,5 +10,7 @@ Route::get('/', function () {
 
 Volt::route('/torneo-equipos-marzo', 'torneo-emparejamientos')->name('torneo.index');
 
+Volt::route('/registrar-resultados', 'registrar-resultados')->name('registrar.resultados');
+
 // Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');
 // Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');

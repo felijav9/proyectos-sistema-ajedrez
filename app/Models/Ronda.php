@@ -20,4 +20,9 @@ class Ronda extends Model
     {
         return $this->hasMany(Emparejamiento::class);
     }
+
+     public function resultadosEquipos()
+    {
+        return $this->hasMany(ResultadoEquipo::class);
+    }
 }

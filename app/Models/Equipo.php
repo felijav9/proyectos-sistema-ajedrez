@@ -19,4 +19,20 @@ class Equipo extends Model
     {
         return $this->hasMany(Jugador::class);
     }
+
+    public function resultados()
+    {
+        return $this->hasMany(ResultadoEquipo::class);
+    }
+
+    public function getPuntosGlobalesAttribute()
+    {
+        return $this->resultados()->sum('puntos_globales');
+    }
+
+    public function getPuntosIndividualesAttribute()
+    {
+        return $this->resultados()->sum('puntos_individuales');
+    }
+
 }

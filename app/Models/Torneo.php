@@ -12,4 +12,10 @@ class Torneo extends Model
     {
         return $this->hasMany(Ronda::class);
     }
+
+    public function equipos()
+    {
+        return $this->hasMany(Equipo::class);
+    }
+
 }
