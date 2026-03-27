@@ -29,6 +29,8 @@ new class extends Component {
 
     public $mostrarGanadores = false;
 
+    
+
     public function mount()
     {
         $this->torneo = Torneo::with('rondas')->find(1);

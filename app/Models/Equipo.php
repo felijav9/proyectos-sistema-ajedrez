@@ -34,5 +34,9 @@ class Equipo extends Model
     {
         return $this->resultados()->sum('puntos_individuales');
     }
+    public function desempates()
+    {
+        return $this->hasMany(DesempateEquipo::class);
+    }
 
 }
