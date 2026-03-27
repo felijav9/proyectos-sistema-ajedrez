@@ -508,8 +508,10 @@ new class extends Component {
             
                     // Si no hay datos, limpiamos la gráfica y salimos
                     if (!data || data.length === 0) {
-                        if (this.chart) { this.chart.destroy();
-                            this.chart = null; }
+                        if (this.chart) {
+                            this.chart.destroy();
+                            this.chart = null;
+                        }
                         this.$refs.mapaEquipos.innerHTML = '';
                         return;
                     }
@@ -628,15 +630,20 @@ new class extends Component {
                 </div>
             </section>
 
+
             {{-- BLOQUE DERECHO: TABLA GENERAL (CON DISEÑO DE MEDALLAS) --}}
+            {{-- El wire:key es vital para que Livewire no se confunda al redibujar --}}
+            {{-- BLOQUE DERECHO: TABLA GENERAL --}}
+            {{-- BLOQUE DERECHO: TABLA GENERAL CORREGIDA --}}
             <section
-                class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16"
-                x-data="{ open: false }">
+                class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16 w-full px-4 md:px-6"
+                x-data="{ open: false }" wire:key="tabla-general-torneo-{{ $torneo->id }}" {{-- LLAVE FIJA: Evita que Alpine se reinicie al refrescar --}}
+                wire:on.graficaActualizada="$refresh">
                 @php
                     $tabla = $this->tablaGeneral->values();
 
                     $todosEnCero = $tabla->every(
-                        fn($row) => $row['total_global'] == 0 && $row['total_individual'] == 0,
+                        fn($row) => ($row['total_global'] ?? 0) == 0 && ($row['total_individual'] ?? 0) == 0,
                     );
 
                     if (!function_exists('getMedallaStyleById')) {
@@ -671,14 +678,14 @@ new class extends Component {
                     }
                 @endphp
 
-                <div @click="open = !open" class="flex items-center justify-between cursor-pointer group mb-6">
-                    <div class="flex flex-col">
+                {{-- CABECERA --}}
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div class="flex flex-col cursor-pointer" @click="open = !open">
                         <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
                             <span class="text-[#c5a059] text-3xl">♖</span> Tabla General Por Equipos
                         </h2>
-                        {{-- Mensaje "Por definirse" dinámico --}}
                         @if ($todosEnCero)
-                            <span class="text-xs font-bold text-green-600 mt-1 flex items-center gap-1">
+                            <span class="text-xs font-bold text-green-600 mt-1 flex items-center gap-1 ml-10">
                                 <span class="relative flex h-2 w-2">
                                     <span
                                         class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -689,18 +696,36 @@ new class extends Component {
                         @endif
                     </div>
 
-                    <span class="text-xs font-bold text-slate-400 group-hover:text-[#c5a059] transition-colors"
-                        x-text="open ? 'OCULTAR DETALLES' : 'MOSTRAR DETALLES'"></span>
+                    <div class="flex items-center gap-3">
+                        {{-- BOTÓN ACTUALIZAR DATOS --}}
+                        <button wire:click="$refresh" wire:loading.attr="disabled" @click.stop {{-- EVITA QUE EL CLICK CIERRE LA TABLA --}}
+                            class="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-[#c5a059] hover:text-white rounded-xl transition-all active:scale-95 border border-slate-200 shadow-sm disabled:opacity-50">
+                            <svg wire:loading.class="animate-spin" class="w-3.5 h-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span wire:loading.remove wire:target="$refresh">ACTUALIZAR DATOS</span>
+                            <span wire:loading wire:target="$refresh">ACTUALIZANDO...</span>
+                        </button>
+
+                        {{-- BOTÓN MOSTRAR/OCULTAR --}}
+                        <button @click="open = !open"
+                            class="text-xs font-bold text-slate-400 hover:text-[#c5a059] transition-colors border border-transparent px-2 py-2"
+                            x-text="open ? 'OCULTAR DETALLES' : 'MOSTRAR DETALLES'">
+                        </button>
+                    </div>
                 </div>
 
-                <div x-show="open" x-transition x-cloak class="overflow-hidden rounded-2xl border border-slate-100">
-                    <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 500px;">
+                {{-- CUERPO DE LA TABLA --}}
+                <div x-show="open" x-transition x-cloak
+                    class="overflow-hidden rounded-2xl border border-slate-100 shadow-inner bg-slate-50/30">
+                    <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 600px;">
                         <table class="w-full text-sm border-collapse min-w-[800px]">
                             <thead class="sticky top-0 bg-slate-900 text-white z-20">
                                 <tr>
                                     <th class="p-4 text-center">#</th>
                                     <th class="p-4 text-left">Equipo</th>
-                                    {{-- Rondas Dinámicas --}}
                                     @foreach ($torneo->rondas as $ronda)
                                         <th class="p-4 text-center whitespace-nowrap">R{{ $ronda->numero }}</th>
                                     @endforeach
@@ -708,7 +733,8 @@ new class extends Component {
                                     <th class="p-4 text-center">Indiv.</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
+                            <tbody class="divide-y divide-slate-100 bg-white"
+                                wire:loading.class="opacity-40 transition-opacity">
                                 @foreach ($tabla as $index => $row)
                                     @php
                                         $pos = $index + 1;
@@ -716,7 +742,7 @@ new class extends Component {
                                         $currentStyle = getMedallaStyleById($pos, $tienePuntos);
                                         $rowStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
                                     @endphp
-                                    <tr style="{{ $rowStyle }}" class="transition hover:bg-white/40">
+                                    <tr style="{{ $rowStyle }}" class="transition hover:bg-slate-50/80">
                                         <td class="p-4 text-center font-black text-xl">
                                             @if ($tienePuntos)
                                                 {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
@@ -724,29 +750,24 @@ new class extends Component {
                                                 <span class="text-slate-300">{{ $pos }}</span>
                                             @endif
                                         </td>
-
                                         <td class="p-4 text-left font-bold text-slate-800">
                                             {{ $row['equipo']->nombre }}
                                         </td>
-
                                         @foreach ($row['rondas'] as $r)
                                             <td class="p-3 text-center">
                                                 @if ($r['global'] !== null)
                                                     <div class="font-bold text-slate-900">{{ $r['global'] }}</div>
                                                     <div class="text-[10px] text-slate-500 font-medium">
-                                                        ({{ $r['individual'] }})
-                                                    </div>
+                                                        ({{ $r['individual'] }})</div>
                                                 @else
                                                     <span class="text-slate-200">-</span>
                                                 @endif
                                             </td>
                                         @endforeach
-
                                         <td class="p-4 text-center font-black text-xl"
                                             style="color: {{ $currentStyle['totalText'] }}">
                                             {{ $row['total_global'] }}
                                         </td>
-
                                         <td class="p-4 text-center font-bold text-slate-500">
                                             {{ $row['total_individual'] }}
                                         </td>
@@ -757,6 +778,7 @@ new class extends Component {
                     </div>
                 </div>
             </section>
+
 
         </div>
 
