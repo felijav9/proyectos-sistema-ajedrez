@@ -15,8 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
             $table->string('nombre');
-            $table->char('tablero', 1)->nullable(); // <--- AQUÍ: Para guardar A, B, C o D
+            $table->char('tablero', 1)->nullable(); // A, B, C o D
             $table->integer('elo')->default(0);
+            
+            // --- NUEVOS CAMPOS ---
+            $table->integer('edad')->nullable(); // Guardamos el número de años
+            $table->string('genero')->nullable(); // Para 'Masculino', 'Femenino' o 'Otro'
+            
             $table->timestamps();
         });
     }

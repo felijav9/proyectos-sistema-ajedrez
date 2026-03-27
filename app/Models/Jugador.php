@@ -17,7 +17,9 @@ class Jugador extends Model
         'equipo_id',
         'nombre',
         'tablero',
-        'elo'
+        'elo',
+        'edad',
+        'genero'
     ];
 
     /**

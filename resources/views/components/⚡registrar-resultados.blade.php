@@ -5,6 +5,7 @@ use App\Models\Torneo;
 use App\Models\Emparejamiento;
 use App\Models\Equipo;
 use App\Models\ResultadoEquipo;
+use App\Models\Jugador;
 
 new class extends Component {
     public $openEquipos = false;
@@ -19,6 +20,12 @@ new class extends Component {
 
     public $editandoJugadorId = null;
     public $nuevoNombreJugador;
+
+    // --- NUEVAS PROPIEDADES PARA PERFIL ---
+    public $editandoPerfilId = null;
+    public $nuevaEdad;
+    public $nuevoGenero;
+    public $nuevoElo;
 
     public function mount()
     {
@@ -258,6 +265,42 @@ new class extends Component {
         // $this->dispatch('notify', 'Equipo actualizado correctamente');
     }
 
+    // EDICIÓN PARA EDAD Y GENERO
+
+    public function editarPerfil($id)
+    {
+        $jugador = Jugador::find($id);
+        $this->editandoPerfilId = $id;
+        $this->nuevaEdad = $jugador->edad;
+        $this->nuevoGenero = $jugador->genero;
+        $this->nuevoElo = $jugador->elo;
+        $this->editandoJugadorId = null;
+    }
+
+    public function cancelarPerfil()
+    {
+        $this->editandoPerfilId = null;
+    }
+
+    public function guardarPerfil()
+    {
+        $this->validate([
+            'nuevaEdad' => 'nullable|integer|min:5|max:100',
+            'nuevoGenero' => 'nullable|string',
+            'nuevoElo' => 'nullable|integer|min:0|max:3500', // <--- Validar ELO
+        ]);
+
+        $jugador = Jugador::find($this->editandoPerfilId);
+        $jugador->update([
+            'edad' => $this->nuevaEdad,
+            'genero' => $this->nuevoGenero,
+            'elo' => $this->nuevoElo, // <--- Guardar ELO
+        ]);
+
+        $this->equipos = Equipo::with('jugadores')->get();
+        $this->cancelarPerfil();
+    }
+
     public function editarJugador($id, $nombreActual)
     {
         $this->editandoJugadorId = $id;
@@ -315,6 +358,8 @@ new class extends Component {
 
 
     <main class="max-w-7xl mx-auto px-4">
+
+
 
         {{-- TABLA DE POSICIONES --}}
 
@@ -736,7 +781,6 @@ new class extends Component {
             </section>
 
 
-
             <section class="mb-16 w-full px-6" x-data="{ open: false }">
                 <div @click="open = !open"
                     class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl transition-all mb-6 border-l-8 border-[#c5a059]">
@@ -823,7 +867,6 @@ new class extends Component {
                                             class="font-black text-xl {{ $colorClase['text'] }} uppercase tracking-widest group-hover:scale-105 transition-transform">
                                             {{ $equipo->nombre }}
                                         </h3>
-                                        {{-- BOTÓN DE EDITAR SIEMPRE VISIBLE --}}
                                         <button
                                             wire:click="editarEquipo({{ $equipo->id }}, '{{ $equipo->nombre }}')"
                                             class="absolute top-3 right-3 opacity-100 text-slate-600 hover:text-[#c5a059] transition-colors p-1"
@@ -839,80 +882,141 @@ new class extends Component {
 
                                 <div class="p-6">
 
+
+
                                     <ul class="space-y-3" style="list-style: none; padding: 0;">
                                         @foreach ($equipo->jugadores->sortBy('tablero') as $jugador)
                                             <li
-                                                class="flex items-center justify-between border-b border-slate-100 pb-2 last:border-0 group/item">
+                                                class="flex flex-col border-b border-slate-100 pb-2 last:border-0 group/item">
                                                 <div class="flex items-center gap-3 w-full">
-                                                    {{-- Icono Peón --}}
                                                     <span
-                                                        class="flex-shrink-0 {{ str_contains($colorClase['text'], 'white') ? 'text-slate-400' : $colorClase['text'] }} text-lg">
-                                                        ♟
-                                                    </span>
+                                                        class="flex-shrink-0 {{ str_contains($colorClase['text'], 'white') ? 'text-slate-400' : $colorClase['text'] }} text-lg">♟</span>
 
-                                                    {{-- Etiqueta Tablero --}}
                                                     <span
                                                         class="flex-shrink-0 ml-1 text-[9px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-sm">
                                                         {{ $jugador->tablero }}
                                                     </span>
 
                                                     @if ($editandoJugadorId === $jugador->id)
-                                                        {{-- MODO EDICIÓN JUGADOR --}}
+                                                        {{-- MODO EDICIÓN NOMBRE --}}
                                                         <div
-                                                            class="flex items-center gap-2 w-full bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                                                            <input type="text"
-                                                                wire:model.defer="nuevoNombreJugador"
-                                                                style="flex: 1; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 14px; outline: none;"
-                                                                autofocus wire:keydown.enter="actualizarNombreJugador"
-                                                                wire:keydown.escape="cancelarEdicionJugador">
-
-                                                            <div class="flex gap-1 flex-shrink-0">
-                                                                {{-- Botón OK en VERDE --}}
+                                                            class="flex flex-col gap-2 w-full bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                                                            <div class="flex flex-col gap-1">
+                                                                <label
+                                                                    style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-left: 2px;">Nombre
+                                                                    del Jugador</label>
+                                                                <input type="text"
+                                                                    wire:model.defer="nuevoNombreJugador"
+                                                                    style="width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 14px; outline: none;"
+                                                                    autofocus
+                                                                    wire:keydown.enter="actualizarNombreJugador"
+                                                                    wire:keydown.escape="cancelarEdicionJugador">
+                                                            </div>
+                                                            <div class="flex justify-end gap-1">
                                                                 <button wire:click="actualizarNombreJugador"
-                                                                    style="background-color: #16a34a; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
-                                                                    OK
-                                                                </button>
-                                                                {{-- Botón X en ROJO --}}
+                                                                    style="background-color: #16a34a; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">OK</button>
                                                                 <button wire:click="cancelarEdicionJugador"
-                                                                    style="background-color: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
-                                                                    X
-                                                                </button>
+                                                                    style="background-color: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">X</button>
+                                                            </div>
+                                                        </div>
+                                                    @elseif($editandoPerfilId === $jugador->id)
+                                                        {{-- MODO EDICIÓN PERFIL (EDAD, GÉNERO, ELO) --}}
+                                                        <div
+                                                            class="flex flex-col gap-2 w-full bg-slate-50 p-2 rounded-lg border border-blue-200 shadow-inner">
+                                                            <div class="flex gap-2">
+                                                                {{-- Columna Edad --}}
+                                                                <div class="flex flex-col gap-1" style="width: 25%;">
+                                                                    <label
+                                                                        style="font-size: 8px; font-weight: 900; color: #3b82f6; text-transform: uppercase; margin-left: 2px;">Edad</label>
+                                                                    <input type="number" placeholder="00"
+                                                                        wire:model.defer="nuevaEdad"
+                                                                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 11px;">
+                                                                </div>
+
+                                                                {{-- Columna Género --}}
+                                                                <div class="flex flex-col gap-1" style="width: 40%;">
+                                                                    <label
+                                                                        style="font-size: 8px; font-weight: 900; color: #3b82f6; text-transform: uppercase; margin-left: 2px;">Género</label>
+                                                                    <select wire:model.defer="nuevoGenero"
+                                                                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 11px; background-color: white;">
+                                                                        <option value="">Seleccionar</option>
+                                                                        <option value="Masculino">Masculino</option>
+                                                                        <option value="Femenino">Femenino</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                {{-- Columna ELO --}}
+                                                                <div class="flex flex-col gap-1" style="width: 35%;">
+                                                                    <label
+                                                                        style="font-size: 8px; font-weight: 900; color: #3b82f6; text-transform: uppercase; margin-left: 2px;">Elo
+                                                                        Rating</label>
+                                                                    <input type="number" placeholder="ELO"
+                                                                        wire:model.defer="nuevoElo"
+                                                                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 11px; font-weight: bold; color: #1e293b;">
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex justify-end gap-1 mt-1">
+                                                                <button wire:click="guardarPerfil"
+                                                                    style="background-color: #2563eb; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">Guardar</button>
+                                                                <button wire:click="cancelarPerfil"
+                                                                    style="background-color: #94a3b8; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">X</button>
                                                             </div>
                                                         </div>
                                                     @else
-                                                        {{-- MODO VISTA JUGADOR --}}
-                                                        <span
-                                                            class="font-bold {{ str_contains($colorClase['text'], 'white') ? 'text-slate-700' : 'text-slate-600' }} truncate">
-                                                            {{ $jugador->nombre }}
-                                                        </span>
-
-                                                        @if ($jugador->tablero == 'A')
+                                                        {{-- MODO VISTA --}}
+                                                        <div class="flex items-center gap-2 flex-grow overflow-hidden">
                                                             <span
-                                                                class="text-[8px] font-black bg-[#c5a059] text-white px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse shadow-sm">
-                                                                Capitán
+                                                                class="font-bold {{ str_contains($colorClase['text'], 'white') ? 'text-slate-700' : 'text-slate-600' }} truncate">
+                                                                {{ $jugador->nombre }}
                                                             </span>
-                                                        @endif
 
-                                                        {{-- Lápiz para editar en AZUL --}}
-                                                        <button
-                                                            wire:click="editarJugador({{ $jugador->id }}, '{{ $jugador->nombre }}')"
-                                                            style="margin-left: auto; background-color: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px; border-radius: 6px; border: none; cursor: pointer; transition: 0.2s;"
-                                                            onmouseover="this.style.backgroundColor='rgba(37, 99, 235, 0.2)'"
-                                                            onmouseout="this.style.backgroundColor='rgba(37, 99, 235, 0.1)'"
-                                                            title="Editar Jugador">
-                                                            <svg style="width: 16px; height: 16px;" fill="none"
-                                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2.5"
-                                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                            </svg>
-                                                        </button>
+                                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                                @if ($jugador->elo)
+                                                                    <span
+                                                                        class="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
+                                                                        {{ $jugador->elo }}
+                                                                    </span>
+                                                                @endif
+
+                                                                @if ($jugador->edad || $jugador->genero)
+                                                                    <span
+                                                                        class="text-[9px] text-slate-400 font-black uppercase">
+                                                                        ({{ $jugador->edad ?? '?' }}a,
+                                                                        {{ $jugador->genero == 'Masculino' ? 'M' : ($jugador->genero == 'Femenino' ? 'F' : 'O') }})
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="flex gap-1 ml-auto">
+                                                            <button wire:click="editarPerfil({{ $jugador->id }})"
+                                                                style="background-color: rgba(71, 85, 105, 0.1); color: #475569; padding: 6px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center;"
+                                                                title="Datos del Jugador (Elo/Edad)">
+                                                                <svg style="width: 16px; height: 16px;" fill="none"
+                                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round"
+                                                                        stroke-linejoin="round" stroke-width="2.5"
+                                                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                                </svg>
+                                                            </button>
+
+                                                            <button
+                                                                wire:click="editarJugador({{ $jugador->id }}, '{{ $jugador->nombre }}')"
+                                                                style="background-color: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center;"
+                                                                title="Editar Nombre">
+                                                                <svg style="width: 16px; height: 16px;" fill="none"
+                                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round"
+                                                                        stroke-linejoin="round" stroke-width="2.5"
+                                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
                                                     @endif
                                                 </div>
                                             </li>
                                         @endforeach
                                     </ul>
-
 
 
                                 </div>

@@ -631,10 +631,7 @@ new class extends Component {
             </section>
 
 
-            {{-- BLOQUE DERECHO: TABLA GENERAL (CON DISEÑO DE MEDALLAS) --}}
-            {{-- El wire:key es vital para que Livewire no se confunda al redibujar --}}
-            {{-- BLOQUE DERECHO: TABLA GENERAL --}}
-            {{-- BLOQUE DERECHO: TABLA GENERAL CORREGIDA --}}
+    
             <section
                 class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16 w-full px-4 md:px-6"
                 x-data="{ open: false }" wire:key="tabla-general-torneo-{{ $torneo->id }}" {{-- LLAVE FIJA: Evita que Alpine se reinicie al refrescar --}}
