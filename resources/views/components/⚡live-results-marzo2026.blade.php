@@ -476,210 +476,287 @@ new class extends Component {
         {{-- SECCIÓN SUPERIOR: GRÁFICA Y TABLA (LADO A LADO) --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
 
-            {{-- BLOQUE IZQUIERDO: RENDIMIENTO (GRÁFICA COMPLETA) --}}
             <section x-data="{
                 chart: null,
                 loading: false,
                 puntosIndividual: [],
+            
                 init() {
-                    this.$nextTick(() => { this.renderOrUpdate(); });
+                    this.renderOrUpdate();
+            
                     document.addEventListener('livewire:initialized', () => {
-                        @this.on('graficaActualizada', () => { this.renderOrUpdate(); });
+                        @this.on('graficaActualizada', () => {
+                            this.renderOrUpdate();
+                        });
                     });
                 },
+            
                 async refreshManual() {
                     this.loading = true;
-                    let freshData = await @this.getGraficaData();
-                    this.renderOrUpdate(freshData);
-                    setTimeout(() => { this.loading = false; }, 600);
+                    try {
+                        let freshData = await @this.getGraficaData();
+                        this.renderOrUpdate(freshData);
+                    } catch (e) {
+                        console.error('Error al actualizar:', e);
+                    } finally {
+                        setTimeout(() => { this.loading = false; }, 600);
+                    }
                 },
+            
                 renderOrUpdate(incomingData = null) {
                     let data = incomingData ? incomingData : @js($this->graficaEquipos);
+            
+                    // Si no hay datos, limpiamos la gráfica y salimos
+                    if (!data || data.length === 0) {
+                        if (this.chart) { this.chart.destroy();
+                            this.chart = null; }
+                        this.$refs.mapaEquipos.innerHTML = '';
+                        return;
+                    }
+            
                     let nombres = data.map(e => e.nombre);
                     let puntosGlobal = data.map(e => Number(e.global));
                     this.puntosIndividual = data.map(e => Number(e.individual));
                     let colores = data.map(e => e.color);
             
-                    if (!this.chart) {
-                        this.chart = new ApexCharts(this.$refs.mapaEquipos, {
-                            chart: {
-                                type: 'bar',
-                                height: 450,
-                                toolbar: { show: false },
-                                fontFamily: 'inherit',
-                                animations: { enabled: true, easing: 'easeinout', speed: 800 }
+                    if (this.chart && typeof this.chart.destroy === 'function') {
+                        this.chart.destroy();
+                    }
+            
+                    this.$refs.mapaEquipos.innerHTML = '';
+            
+                    this.chart = new ApexCharts(this.$refs.mapaEquipos, {
+                        chart: {
+                            type: 'bar',
+                            height: 450,
+                            toolbar: { show: false },
+                            fontFamily: 'inherit',
+                            animations: { enabled: true, easing: 'easeinout', speed: 800 }
+                        },
+                        series: [{ name: 'Puntos Globales', data: puntosGlobal }],
+                        colors: colores,
+                        plotOptions: {
+                            bar: {
+                                horizontal: true,
+                                barHeight: '80%',
+                                distributed: true,
+                                borderRadius: 8,
+                                dataLabels: { position: 'bottom', hideOverflowingText: false }
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            textAnchor: 'start',
+                            style: { colors: ['#fff'], fontWeight: '800', fontSize: '10px' },
+                            formatter: (val, opts) => {
+                                let ind = this.puntosIndividual[opts.dataPointIndex];
+                                let txtG = val === 1 ? val + ' PT GRUPAL' : val + ' PTS GRUPALES';
+                                let txtI = ind === 1 ? ind + ' PT INDV' : ind + ' PTS INDV';
+                                return (val < 6) ? [txtG, txtI] : txtG + '  |  ' + txtI;
                             },
-                            series: [{ name: 'Puntos Globales', data: puntosGlobal }],
-                            colors: colores,
-                            plotOptions: {
-                                bar: {
-                                    horizontal: true,
-                                    barHeight: '80%',
-                                    distributed: true,
-                                    borderRadius: 8,
-                                    dataLabels: { position: 'bottom', hideOverflowingText: false }
-                                }
-                            },
-                            dataLabels: {
-                                enabled: true,
-                                textAnchor: 'start',
-                                style: { colors: ['#fff'], fontWeight: '800', fontSize: '10px' },
+                            offsetX: 0,
+                            dropShadow: { enabled: true }
+                        },
+                        xaxis: {
+                            categories: nombres,
+                            labels: { style: { fontWeight: '700' } }
+                        },
+                        yaxis: {
+                            labels: {
+                                style: { colors: '#1e293b', fontWeight: '900', fontSize: '13px' },
+                                maxWidth: 150
+                            }
+                        },
+                        tooltip: {
+                            theme: 'dark',
+                            y: {
                                 formatter: (val, opts) => {
                                     let ind = this.puntosIndividual[opts.dataPointIndex];
-                                    let txtG = val === 1 ? val + ' PT GRUPAL' : val + ' PTS GRUPALES';
-                                    let txtI = ind === 1 ? ind + ' PT INDV' : ind + ' PTS INDV';
-                                    return val < 6 ? [txtG, txtI] : txtG + '  |  ' + txtI;
-                                },
-                                offsetX: 0,
-                                dropShadow: { enabled: true }
-                            },
-                            xaxis: {
-                                categories: nombres,
-                                labels: { style: { fontWeight: '700' } }
-                            },
-                            yaxis: {
-                                labels: {
-                                    style: { colors: '#1e293b', fontWeight: '900', fontSize: '13px' },
-                                    maxWidth: 150
+                                    return val + ' grupales | ' + ind + ' individuales';
                                 }
-                            },
-                            tooltip: {
-                                theme: 'dark',
-                                y: {
-                                    formatter: (val, opts) => {
-                                        let ind = this.puntosIndividual[opts.dataPointIndex];
-                                        return val + ' grupales | ' + ind + ' individuales';
-                                    }
-                                }
-                            },
-                            legend: { show: false }
-                        });
-                        this.chart.render();
-                    } else {
-                        this.chart.updateOptions({
-                            series: [{ data: puntosGlobal }],
-                            xaxis: { categories: nombres },
-                            colors: colores
-                        });
-                    }
+                            }
+                        },
+                        legend: { show: false }
+                    });
+            
+                    this.chart.render();
                 }
-            }" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
+            }"
+                class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16 w-full">
+
+                <div class="flex flex-col mb-6">
+                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-4">
                         <span class="text-[#c5a059] text-3xl">♜</span> Rendimiento de Equipos
                     </h2>
-                    <button @click="refreshManual()" :disabled="loading"
-                        class="group flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all border border-slate-200 shadow-sm">
-                        <svg :class="loading ? 'animate-spin' : ''" class="w-4 h-4 text-[#c5a059]" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                            </path>
-                        </svg>
-                        <span x-text="loading ? 'Cargando...' : 'Actualizar'"></span>
-                    </button>
+
+                    @php
+                        // Verificamos si todos los equipos están en cero usando la misma lógica que tu tabla
+                        $graficaEnCero = collect($this->graficaEquipos)->every(
+                            fn($e) => $e['global'] == 0 && $e['individual'] == 0,
+                        );
+                    @endphp
+
+                    @if ($graficaEnCero)
+                        <span class="text-xs font-bold text-green-600 mt-1 flex items-center gap-1 ml-12">
+                            <span class="relative flex h-2 w-2">
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            POR DEFINIRSE
+                        </span>
+                    @endif
                 </div>
-                <div x-ref="mapaEquipos" wire:ignore></div>
+
+                <div class="relative bg-slate-50/50 rounded-2xl border border-slate-100 p-4">
+
+                    <div class="absolute top-4 left-6 z-10">
+                        <button @click="refreshManual()"
+                            class="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all border border-slate-200 shadow-sm"
+                            :disabled="loading">
+                            <svg :class="loading ? 'animate-spin' : ''" class="w-3 h-3 text-[#c5a059]" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            <span x-text="loading ? 'Cargando...' : 'Actualizar Datos'"></span>
+                        </button>
+                    </div>
+
+                    <div class="mt-10" x-ref="mapaEquipos" wire:ignore></div>
+                </div>
             </section>
 
             {{-- BLOQUE DERECHO: TABLA GENERAL (CON DISEÑO DE MEDALLAS) --}}
-            <section class="mb-16 w-full px-4 md:px-6" x-data="{ open: false }">
-    @php
-        $tabla = $this->tablaGeneral->values();
+            <section
+                class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16"
+                x-data="{ open: false }">
+                @php
+                    $tabla = $this->tablaGeneral->values();
 
-        if (!function_exists('getMedallaStyleById')) {
-            function getMedallaStyleById($pos, $tienePuntos) {
-                if (!$tienePuntos) {
-                    return ['bg' => 'transparent', 'border' => 'transparent', 'totalText' => '#94a3b8'];
-                }
-                return match ($pos) {
-                    1 => ['bg' => 'rgba(255, 215, 0, 0.25)', 'border' => '#FFD700', 'totalText' => '#b8860b'],
-                    2 => ['bg' => 'rgba(192, 192, 192, 0.3)', 'border' => '#94a3b8', 'totalText' => '#64748b'],
-                    3 => ['bg' => 'rgba(205, 127, 50, 0.25)', 'border' => '#CD7F32', 'totalText' => '#8b4513'],
-                    default => ['bg' => 'transparent', 'border' => 'transparent', 'totalText' => '#c5a059'],
-                };
-            }
-        }
-    @endphp
+                    $todosEnCero = $tabla->every(
+                        fn($row) => $row['total_global'] == 0 && $row['total_individual'] == 0,
+                    );
 
-    <div @click="open = !open"
-        class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl mb-6 border-l-8 border-[#c5a059]">
-        <div class="flex items-center gap-4">
-            <span class="text-2xl text-[#c5a059]">♖</span>
-            <h2 class="text-2xl font-bold text-white uppercase tracking-tight">
-                Tabla de Posiciones
-            </h2>
-        </div>
-        <span class="text-xs font-bold text-[#c5a059]" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
-    </div>
+                    if (!function_exists('getMedallaStyleById')) {
+                        function getMedallaStyleById($pos, $tienePuntos)
+                        {
+                            if (!$tienePuntos) {
+                                return ['bg' => 'transparent', 'border' => 'transparent', 'totalText' => '#94a3b8'];
+                            }
+                            return match ($pos) {
+                                1 => [
+                                    'bg' => 'rgba(255, 215, 0, 0.25)',
+                                    'border' => '#FFD700',
+                                    'totalText' => '#b8860b',
+                                ],
+                                2 => [
+                                    'bg' => 'rgba(192, 192, 192, 0.3)',
+                                    'border' => '#94a3b8',
+                                    'totalText' => '#64748b',
+                                ],
+                                3 => [
+                                    'bg' => 'rgba(205, 127, 50, 0.25)',
+                                    'border' => '#CD7F32',
+                                    'totalText' => '#8b4513',
+                                ],
+                                default => [
+                                    'bg' => 'transparent',
+                                    'border' => 'transparent',
+                                    'totalText' => '#c5a059',
+                                ],
+                            };
+                        }
+                    }
+                @endphp
 
-    <div x-show="open" x-cloak x-transition class="w-full">
-        <div class="w-full overflow-hidden rounded-2xl shadow-xl border border-slate-200 bg-white transition-all duration-300">
-            <div class="w-full overflow-x-auto">
-                <table class="w-full min-w-[800px] md:min-w-[1100px] text-sm text-center border-collapse">
-                    <thead class="bg-slate-900 text-white">
-                        <tr>
-                            <th class="p-4 whitespace-nowrap">#</th>
-                            <th class="p-4 text-left whitespace-nowrap">Equipo</th>
-                            @foreach ($torneo->rondas as $ronda)
-                                <th wire:key="th-ronda-{{ $ronda->id }}" class="p-4 whitespace-nowrap">R{{ $ronda->numero }}</th>
-                            @endforeach
-                            <th class="p-4 whitespace-nowrap">Global</th>
-                            <th class="p-4 whitespace-nowrap">Individual</th>
-                        </tr>
-                    </thead>
+                <div @click="open = !open" class="flex items-center justify-between cursor-pointer group mb-6">
+                    <div class="flex flex-col">
+                        <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
+                            <span class="text-[#c5a059] text-3xl">♖</span> Tabla General Por Equipos
+                        </h2>
+                        {{-- Mensaje "Por definirse" dinámico --}}
+                        @if ($todosEnCero)
+                            <span class="text-xs font-bold text-green-600 mt-1 flex items-center gap-1">
+                                <span class="relative flex h-2 w-2">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                POR DEFINIRSE
+                            </span>
+                        @endif
+                    </div>
 
-                    <tbody class="divide-y divide-slate-100">
-                        @foreach ($tabla as $index => $row)
-                            @php
-                                $pos = $index + 1;
-                                $tienePuntos = $row['total_global'] > 0;
-                                $currentStyle = getMedallaStyleById($pos, $tienePuntos);
-                                $rowInlineStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
-                            @endphp
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-[#c5a059] transition-colors"
+                        x-text="open ? 'OCULTAR DETALLES' : 'MOSTRAR DETALLES'"></span>
+                </div>
 
-                            <tr wire:key="row-team-{{ $row['equipo']->id }}" 
-                                style="{{ $rowInlineStyle }}"
-                                class="transition hover:bg-white/50">
+                <div x-show="open" x-transition x-cloak class="overflow-hidden rounded-2xl border border-slate-100">
+                    <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 500px;">
+                        <table class="w-full text-sm border-collapse min-w-[800px]">
+                            <thead class="sticky top-0 bg-slate-900 text-white z-20">
+                                <tr>
+                                    <th class="p-4 text-center">#</th>
+                                    <th class="p-4 text-left">Equipo</th>
+                                    {{-- Rondas Dinámicas --}}
+                                    @foreach ($torneo->rondas as $ronda)
+                                        <th class="p-4 text-center whitespace-nowrap">R{{ $ronda->numero }}</th>
+                                    @endforeach
+                                    <th class="p-4 text-center">Global</th>
+                                    <th class="p-4 text-center">Indiv.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach ($tabla as $index => $row)
+                                    @php
+                                        $pos = $index + 1;
+                                        $tienePuntos = $row['total_global'] > 0;
+                                        $currentStyle = getMedallaStyleById($pos, $tienePuntos);
+                                        $rowStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
+                                    @endphp
+                                    <tr style="{{ $rowStyle }}" class="transition hover:bg-white/40">
+                                        <td class="p-4 text-center font-black text-xl">
+                                            @if ($tienePuntos)
+                                                {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
+                                            @else
+                                                <span class="text-slate-300">{{ $pos }}</span>
+                                            @endif
+                                        </td>
 
-                                <td class="p-4 font-black text-xl">
-                                    @if ($tienePuntos)
-                                        {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
-                                    @else
-                                        <span style="color: #cbd5e1;">{{ $pos }}</span>
-                                    @endif
-                                </td>
+                                        <td class="p-4 text-left font-bold text-slate-800">
+                                            {{ $row['equipo']->nombre }}
+                                        </td>
 
-                                <td class="p-4 text-left font-bold text-slate-800 whitespace-nowrap">
-                                    {{ $row['equipo']->nombre }}
-                                </td>
+                                        @foreach ($row['rondas'] as $r)
+                                            <td class="p-3 text-center">
+                                                @if ($r['global'] !== null)
+                                                    <div class="font-bold text-slate-900">{{ $r['global'] }}</div>
+                                                    <div class="text-[10px] text-slate-500 font-medium">
+                                                        ({{ $r['individual'] }})
+                                                    </div>
+                                                @else
+                                                    <span class="text-slate-200">-</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
 
-                                @foreach ($row['rondas'] as $rIdx => $r)
-                                    <td wire:key="pts-{{ $row['equipo']->id }}-{{ $rIdx }}" class="p-3">
-                                        @if ($r['global'] !== null)
-                                            <div class="font-bold text-slate-900">{{ $r['global'] }}</div>
-                                            <div class="text-[10px] text-slate-500 font-medium">({{ $r['individual'] }})</div>
-                                        @else
-                                            <span style="color: #e2e8f0;">-</span>
-                                        @endif
-                                    </td>
+                                        <td class="p-4 text-center font-black text-xl"
+                                            style="color: {{ $currentStyle['totalText'] }}">
+                                            {{ $row['total_global'] }}
+                                        </td>
+
+                                        <td class="p-4 text-center font-bold text-slate-500">
+                                            {{ $row['total_individual'] }}
+                                        </td>
+                                    </tr>
                                 @endforeach
-
-                                <td class="p-4 font-black text-xl" style="color: {{ $currentStyle['totalText'] }}">
-                                    {{ $row['total_global'] }}
-                                </td>
-
-                                <td class="p-4 font-bold text-slate-700">
-                                    {{ $row['total_individual'] }}
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</section>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
         </div>
 
