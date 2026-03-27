@@ -315,192 +315,6 @@ new class extends Component {
 
 
     <main class="max-w-7xl mx-auto px-4">
-        <section class="mb-16 w-full px-6" x-data="{ open: false }">
-            <div @click="open = !open"
-                class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl transition-all mb-6 border-l-8 border-[#c5a059]">
-
-                <div class="flex items-center gap-4">
-                    <span class="text-2xl text-[#c5a059] group-hover:animate-bounce-slow">♜</span>
-                    <h2 class="text-2xl font-bold text-white uppercase tracking-tight">
-                        Administrar Equipos
-                    </h2>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-black text-[#c5a059] uppercase tracking-widest hidden md:inline"
-                        x-text="open ? 'Colapsar' : 'Desplegar Lista'"></span>
-
-                    <div class="bg-slate-800 p-1.5 rounded-full text-white transition-transform duration-300"
-                        :class="open ? 'rotate-180' : ''">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7">
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform -translate-y-4"
-                x-transition:enter-end="opacity-100 transform translate-y-0">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    @foreach ($equipos->sortBy('nombre') as $equipo)
-                        @php
-                            $nombreLower = strtolower($equipo->nombre);
-                            $colorClase = match (true) {
-                                str_contains($nombreLower, 'campeones') => [
-                                    'border' => 'border-red-500',
-                                    'text' => 'text-red-600',
-                                ],
-                                str_contains($nombreLower, 'bloops') => [
-                                    'border' => 'border-white',
-                                    'text' => 'text-white',
-                                ],
-                                str_contains($nombreLower, 'apertura maestra') => [
-                                    'border' => 'border-gray-400',
-                                    'text' => 'text-gray-400',
-                                ],
-                                str_contains($nombreLower, 'gambitos') && !str_contains($nombreLower, 'dama') => [
-                                    'border' => 'border-green-500',
-                                    'text' => 'text-green-600',
-                                ],
-                                str_contains($nombreLower, 'gambito de dama') => [
-                                    'border' => 'border-blue-500',
-                                    'text' => 'text-blue-600',
-                                ],
-                                str_contains($nombreLower, 'changos') => [
-                                    'border' => 'border-pink-400',
-                                    'text' => 'text-pink-500',
-                                ],
-                                default => ['border' => 'border-[#c5a059]', 'text' => 'text-[#c5a059]'],
-                            };
-                            $isEditing = $editandoEquipoId === $equipo->id;
-                        @endphp
-
-                        <div
-                            class="group relative bg-white border-t-4 {{ $colorClase['border'] }} rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                            <div
-                                class="bg-slate-900 p-5 text-center relative z-10 border-b border-slate-800 min-h-[90px] flex items-center justify-center">
-                                @if ($isEditing)
-                                    <div class="flex flex-col gap-2 w-full">
-                                        <input type="text" wire:model.defer="nuevoNombre"
-                                            class="w-full bg-slate-800 border-slate-700 text-white text-center font-bold rounded-lg focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] uppercase tracking-widest text-sm py-1"
-                                            autofocus wire:keydown.enter="actualizarNombreEquipo"
-                                            wire:keydown.escape="cancelarEdicion">
-                                        <div class="flex justify-center gap-2">
-                                            <button wire:click="actualizarNombreEquipo"
-                                                class="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700 uppercase font-black">OK</button>
-                                            <button wire:click="cancelarEdicion"
-                                                class="text-[9px] bg-slate-700 text-white px-2 py-0.5 rounded hover:bg-slate-600 uppercase font-black">X</button>
-                                        </div>
-                                    </div>
-                                @else
-                                    <h3
-                                        class="font-black text-xl {{ $colorClase['text'] }} uppercase tracking-widest group-hover:scale-105 transition-transform">
-                                        {{ $equipo->nombre }}
-                                    </h3>
-                                    {{-- BOTÓN DE EDITAR SIEMPRE VISIBLE --}}
-                                    <button wire:click="editarEquipo({{ $equipo->id }}, '{{ $equipo->nombre }}')"
-                                        class="absolute top-3 right-3 opacity-100 text-slate-600 hover:text-[#c5a059] transition-colors p-1"
-                                        title="Editar nombre del equipo">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </button>
-                                @endif
-                            </div>
-
-                            <div class="p-6">
-
-                                <ul class="space-y-3" style="list-style: none; padding: 0;">
-                                    @foreach ($equipo->jugadores->sortBy('tablero') as $jugador)
-                                        <li
-                                            class="flex items-center justify-between border-b border-slate-100 pb-2 last:border-0 group/item">
-                                            <div class="flex items-center gap-3 w-full">
-                                                {{-- Icono Peón --}}
-                                                <span
-                                                    class="flex-shrink-0 {{ str_contains($colorClase['text'], 'white') ? 'text-slate-400' : $colorClase['text'] }} text-lg">
-                                                    ♟
-                                                </span>
-
-                                                {{-- Etiqueta Tablero --}}
-                                                <span
-                                                    class="flex-shrink-0 ml-1 text-[9px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-sm">
-                                                    {{ $jugador->tablero }}
-                                                </span>
-
-                                                @if ($editandoJugadorId === $jugador->id)
-                                                    {{-- MODO EDICIÓN JUGADOR --}}
-                                                    <div
-                                                        class="flex items-center gap-2 w-full bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                                                        <input type="text" wire:model.defer="nuevoNombreJugador"
-                                                            style="flex: 1; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 14px; outline: none;"
-                                                            autofocus wire:keydown.enter="actualizarNombreJugador"
-                                                            wire:keydown.escape="cancelarEdicionJugador">
-
-                                                        <div class="flex gap-1 flex-shrink-0">
-                                                            {{-- Botón OK en VERDE --}}
-                                                            <button wire:click="actualizarNombreJugador"
-                                                                style="background-color: #16a34a; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
-                                                                OK
-                                                            </button>
-                                                            {{-- Botón X en ROJO --}}
-                                                            <button wire:click="cancelarEdicionJugador"
-                                                                style="background-color: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
-                                                                X
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    {{-- MODO VISTA JUGADOR --}}
-                                                    <span
-                                                        class="font-bold {{ str_contains($colorClase['text'], 'white') ? 'text-slate-700' : 'text-slate-600' }} truncate">
-                                                        {{ $jugador->nombre }}
-                                                    </span>
-
-                                                    @if ($jugador->tablero == 'A')
-                                                        <span
-                                                            class="text-[8px] font-black bg-[#c5a059] text-white px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse shadow-sm">
-                                                            Capitán
-                                                        </span>
-                                                    @endif
-
-                                                    {{-- Lápiz para editar en AZUL --}}
-                                                    <button
-                                                        wire:click="editarJugador({{ $jugador->id }}, '{{ $jugador->nombre }}')"
-                                                        style="margin-left: auto; background-color: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px; border-radius: 6px; border: none; cursor: pointer; transition: 0.2s;"
-                                                        onmouseover="this.style.backgroundColor='rgba(37, 99, 235, 0.2)'"
-                                                        onmouseout="this.style.backgroundColor='rgba(37, 99, 235, 0.1)'"
-                                                        title="Editar Jugador">
-                                                        <svg style="width: 16px; height: 16px;" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2.5"
-                                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </li>
-                                    @endforeach
-                                </ul>
-
-
-
-                            </div>
-
-                            <div class="px-6 py-2 bg-slate-50 border-t border-slate-100 flex justify-center italic">
-                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rook
-                                    Systems</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-
 
         {{-- TABLA DE POSICIONES --}}
 
@@ -920,6 +734,201 @@ new class extends Component {
                     </div>
                 </div>
             </section>
+
+
+
+            <section class="mb-16 w-full px-6" x-data="{ open: false }">
+                <div @click="open = !open"
+                    class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl transition-all mb-6 border-l-8 border-[#c5a059]">
+
+                    <div class="flex items-center gap-4">
+                        <span class="text-2xl text-[#c5a059] group-hover:animate-bounce-slow">♜</span>
+                        <h2 class="text-2xl font-bold text-white uppercase tracking-tight">
+                            Administrar Equipos
+                        </h2>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-black text-[#c5a059] uppercase tracking-widest hidden md:inline"
+                            x-text="open ? 'Colapsar' : 'Desplegar Lista'"></span>
+
+                        <div class="bg-slate-800 p-1.5 rounded-full text-white transition-transform duration-300"
+                            :class="open ? 'rotate-180' : ''">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                    d="M19 9l-7 7-7-7">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 transform -translate-y-4"
+                    x-transition:enter-end="opacity-100 transform translate-y-0">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        @foreach ($equipos->sortBy('nombre') as $equipo)
+                            @php
+                                $nombreLower = strtolower($equipo->nombre);
+                                $colorClase = match (true) {
+                                    str_contains($nombreLower, 'campeones') => [
+                                        'border' => 'border-red-500',
+                                        'text' => 'text-red-600',
+                                    ],
+                                    str_contains($nombreLower, 'bloops') => [
+                                        'border' => 'border-white',
+                                        'text' => 'text-white',
+                                    ],
+                                    str_contains($nombreLower, 'apertura maestra') => [
+                                        'border' => 'border-gray-400',
+                                        'text' => 'text-gray-400',
+                                    ],
+                                    str_contains($nombreLower, 'gambitos') && !str_contains($nombreLower, 'dama') => [
+                                        'border' => 'border-green-500',
+                                        'text' => 'text-green-600',
+                                    ],
+                                    str_contains($nombreLower, 'gambito de dama') => [
+                                        'border' => 'border-blue-500',
+                                        'text' => 'text-blue-600',
+                                    ],
+                                    str_contains($nombreLower, 'changos') => [
+                                        'border' => 'border-pink-400',
+                                        'text' => 'text-pink-500',
+                                    ],
+                                    default => ['border' => 'border-[#c5a059]', 'text' => 'text-[#c5a059]'],
+                                };
+                                $isEditing = $editandoEquipoId === $equipo->id;
+                            @endphp
+
+                            <div
+                                class="group relative bg-white border-t-4 {{ $colorClase['border'] }} rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                                <div
+                                    class="bg-slate-900 p-5 text-center relative z-10 border-b border-slate-800 min-h-[90px] flex items-center justify-center">
+                                    @if ($isEditing)
+                                        <div class="flex flex-col gap-2 w-full">
+                                            <input type="text" wire:model.defer="nuevoNombre"
+                                                class="w-full bg-slate-800 border-slate-700 text-white text-center font-bold rounded-lg focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] uppercase tracking-widest text-sm py-1"
+                                                autofocus wire:keydown.enter="actualizarNombreEquipo"
+                                                wire:keydown.escape="cancelarEdicion">
+                                            <div class="flex justify-center gap-2">
+                                                <button wire:click="actualizarNombreEquipo"
+                                                    class="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700 uppercase font-black">OK</button>
+                                                <button wire:click="cancelarEdicion"
+                                                    class="text-[9px] bg-slate-700 text-white px-2 py-0.5 rounded hover:bg-slate-600 uppercase font-black">X</button>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <h3
+                                            class="font-black text-xl {{ $colorClase['text'] }} uppercase tracking-widest group-hover:scale-105 transition-transform">
+                                            {{ $equipo->nombre }}
+                                        </h3>
+                                        {{-- BOTÓN DE EDITAR SIEMPRE VISIBLE --}}
+                                        <button
+                                            wire:click="editarEquipo({{ $equipo->id }}, '{{ $equipo->nombre }}')"
+                                            class="absolute top-3 right-3 opacity-100 text-slate-600 hover:text-[#c5a059] transition-colors p-1"
+                                            title="Editar nombre del equipo">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
+
+                                <div class="p-6">
+
+                                    <ul class="space-y-3" style="list-style: none; padding: 0;">
+                                        @foreach ($equipo->jugadores->sortBy('tablero') as $jugador)
+                                            <li
+                                                class="flex items-center justify-between border-b border-slate-100 pb-2 last:border-0 group/item">
+                                                <div class="flex items-center gap-3 w-full">
+                                                    {{-- Icono Peón --}}
+                                                    <span
+                                                        class="flex-shrink-0 {{ str_contains($colorClase['text'], 'white') ? 'text-slate-400' : $colorClase['text'] }} text-lg">
+                                                        ♟
+                                                    </span>
+
+                                                    {{-- Etiqueta Tablero --}}
+                                                    <span
+                                                        class="flex-shrink-0 ml-1 text-[9px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-sm">
+                                                        {{ $jugador->tablero }}
+                                                    </span>
+
+                                                    @if ($editandoJugadorId === $jugador->id)
+                                                        {{-- MODO EDICIÓN JUGADOR --}}
+                                                        <div
+                                                            class="flex items-center gap-2 w-full bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                                                            <input type="text"
+                                                                wire:model.defer="nuevoNombreJugador"
+                                                                style="flex: 1; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 14px; outline: none;"
+                                                                autofocus wire:keydown.enter="actualizarNombreJugador"
+                                                                wire:keydown.escape="cancelarEdicionJugador">
+
+                                                            <div class="flex gap-1 flex-shrink-0">
+                                                                {{-- Botón OK en VERDE --}}
+                                                                <button wire:click="actualizarNombreJugador"
+                                                                    style="background-color: #16a34a; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
+                                                                    OK
+                                                                </button>
+                                                                {{-- Botón X en ROJO --}}
+                                                                <button wire:click="cancelarEdicionJugador"
+                                                                    style="background-color: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase;">
+                                                                    X
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        {{-- MODO VISTA JUGADOR --}}
+                                                        <span
+                                                            class="font-bold {{ str_contains($colorClase['text'], 'white') ? 'text-slate-700' : 'text-slate-600' }} truncate">
+                                                            {{ $jugador->nombre }}
+                                                        </span>
+
+                                                        @if ($jugador->tablero == 'A')
+                                                            <span
+                                                                class="text-[8px] font-black bg-[#c5a059] text-white px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse shadow-sm">
+                                                                Capitán
+                                                            </span>
+                                                        @endif
+
+                                                        {{-- Lápiz para editar en AZUL --}}
+                                                        <button
+                                                            wire:click="editarJugador({{ $jugador->id }}, '{{ $jugador->nombre }}')"
+                                                            style="margin-left: auto; background-color: rgba(37, 99, 235, 0.1); color: #2563eb; padding: 6px; border-radius: 6px; border: none; cursor: pointer; transition: 0.2s;"
+                                                            onmouseover="this.style.backgroundColor='rgba(37, 99, 235, 0.2)'"
+                                                            onmouseout="this.style.backgroundColor='rgba(37, 99, 235, 0.1)'"
+                                                            title="Editar Jugador">
+                                                            <svg style="width: 16px; height: 16px;" fill="none"
+                                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2.5"
+                                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+
+
+
+                                </div>
+
+                                <div
+                                    class="px-6 py-2 bg-slate-50 border-t border-slate-100 flex justify-center italic">
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rook
+                                        Systems</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+
+
 
 
             {{-- SECCIÓN EMPAREJAMIENTOS --}}
