@@ -27,12 +27,33 @@ new class extends Component {
     public $nuevoGenero;
     public $nuevoElo;
 
+    public $mostrarGanadores = false;
+
     public function mount()
     {
         $this->torneo = Torneo::with('rondas')->find(1);
 
         // cargar equipos con jugadores
         $this->equipos = Equipo::with('jugadores')->get();
+        $this->mostrarGanadores = $this->torneo->mostrar_ganadores ?? false;
+    }
+
+    public function definirMejores()
+    {
+        // Aquí podrías guardar en la BD que el torneo terminó
+        $this->torneo->update(['mostrar_ganadores' => true]);
+        $this->mostrarGanadores = true;
+
+        session()->flash('message', '¡Ranking final definido correctamente!');
+    }
+
+    public function limpiarGanadores()
+    {
+        // Revertimos en la base de datos
+        $this->torneo->update(['mostrar_ganadores' => false]);
+        $this->mostrarGanadores = false;
+
+        session()->flash('message', 'Se ha ocultado el ranking de mejores jugadores.');
     }
 
     public function verRonda($rondaId, $numero)
@@ -185,7 +206,7 @@ new class extends Component {
 
     public function getGraficaEquiposProperty()
     {
-        // Obtenemos los datos y los ordenamos
+        // Ordenar igual que siempre
         $data = $this->tablaGeneral
             ->values()
             ->sortByDesc(function ($row) {
@@ -193,29 +214,49 @@ new class extends Component {
             })
             ->values();
 
-        return $data->map(function ($row, $index) {
+        $ranking = [];
+        $posActual = 1;
+        $count = 0;
+        $lastKey = null;
+
+        // 🔥 GENERAR RANKING CON EMPATES
+        foreach ($data as $i => $row) {
+            $key = ($row['total_global'] ?? 0) . '-' . ($row['total_individual'] ?? 0);
+
+            if ($key !== $lastKey) {
+                $posActual = $count + 1;
+            }
+
+            $ranking[$i] = $posActual;
+
+            $lastKey = $key;
+            $count++;
+        }
+
+        // 🔥 MAPEAR DATOS
+        return $data->map(function ($row, $index) use ($ranking) {
             $nombre = $row['equipo']->nombre;
             $nombreLower = strtolower($nombre);
-            $posicion = $index + 1;
+            $posicion = $ranking[$index];
 
-            // Verificamos si hay puntos (puedes usar total_global o total_individual)
-            $tienePuntos = $row['total_global'] > 0 || $row['total_individual'] > 0;
+            $global = $row['total_global'] ?? 0;
+            $individual = $row['total_individual'] ?? 0;
 
-            // LÓGICA MODIFICADA:
-            // Si tiene puntos, usamos medallas para los top 3.
-            // Si NO tiene puntos (está en 0), solo mostramos el número "#1", "#2", etc.
+            $tienePuntos = $global > 0 || $individual > 0;
+
+            // 🔥 MEDALLAS CON EMPATE REAL
             if ($tienePuntos) {
                 $prefijo = match ($posicion) {
-                    1 => '🥇 #1 ',
-                    2 => '🥈 #2 ',
-                    3 => '🥉 #3 ',
+                    1 => '🥇 ',
+                    2 => '🥈 ',
+                    3 => '🥉 ',
                     default => "#$posicion ",
                 };
             } else {
                 $prefijo = "#$posicion ";
             }
 
-            // --- Lógica de colores (se mantiene igual) ---
+            // 🎨 COLORES (igual que tenías)
             $color = match (true) {
                 str_contains($nombreLower, 'campeones') => '#dc2626',
                 str_contains($nombreLower, 'bloops') => '#0f172a',
@@ -228,8 +269,8 @@ new class extends Component {
 
             return [
                 'nombre' => $prefijo . $nombre,
-                'global' => $row['total_global'] ?? 0,
-                'individual' => $row['total_individual'] ?? 0,
+                'global' => $global,
+                'individual' => $individual,
                 'color' => $color,
             ];
         });
@@ -409,36 +450,55 @@ new class extends Component {
             @endphp
 
             <section class="mb-16 w-full px-4 md:px-6" x-data="{ open: false }">
+
                 @php
-                    $tabla = $this->tablaGeneral->values();
+                    $tabla = $this->tablaGeneral->sortByDesc('total_global')->sortByDesc('total_individual')->values();
+
+                    // 🔥 GENERAR RANKING CON EMPATES
+                    $ranking = [];
+                    $posActual = 1;
+                    $count = 0;
+                    $lastKey = null;
+
+                    foreach ($tabla as $i => $row) {
+                        $key = $row['total_global'] . '-' . $row['total_individual'];
+
+                        if ($key !== $lastKey) {
+                            $posActual = $count + 1;
+                        }
+
+                        $ranking[$i] = $posActual;
+
+                        $lastKey = $key;
+                        $count++;
+                    }
 
                     if (!function_exists('getMedallaStyleById')) {
                         function getMedallaStyleById($pos, $tienePuntos)
                         {
-                            // Si no hay puntos, devolvemos estilo neutro
                             if (!$tienePuntos) {
                                 return [
                                     'bg' => 'transparent',
                                     'border' => 'transparent',
-                                    'totalText' => '#94a3b8', // slate-400
+                                    'totalText' => '#94a3b8',
                                 ];
                             }
 
                             return match ($pos) {
                                 1 => [
-                                    'bg' => 'rgba(255, 215, 0, 0.25)', // Oro más intenso
+                                    'bg' => 'rgba(255, 215, 0, 0.25)',
                                     'border' => '#FFD700',
-                                    'totalText' => '#b8860b', // DarkGoldenRod
+                                    'totalText' => '#b8860b',
                                 ],
                                 2 => [
-                                    'bg' => 'rgba(192, 192, 192, 0.3)', // Plata más intensa
+                                    'bg' => 'rgba(192, 192, 192, 0.3)',
                                     'border' => '#94a3b8',
                                     'totalText' => '#64748b',
                                 ],
                                 3 => [
-                                    'bg' => 'rgba(205, 127, 50, 0.25)', // Bronce más intenso
+                                    'bg' => 'rgba(205, 127, 50, 0.25)',
                                     'border' => '#CD7F32',
-                                    'totalText' => '#8b4513', // SaddleBrown
+                                    'totalText' => '#8b4513',
                                 ],
                                 default => [
                                     'bg' => 'transparent',
@@ -450,6 +510,7 @@ new class extends Component {
                     }
                 @endphp
 
+                <!-- HEADER -->
                 <div @click="open = !open"
                     class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl mb-6 border-l-8 border-[#c5a059]">
 
@@ -463,52 +524,66 @@ new class extends Component {
                     <span class="text-xs font-bold text-[#c5a059]" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
                 </div>
 
+                <!-- TABLA -->
                 <div x-show="open" x-cloak x-transition class="w-full">
-                    <div
-                        class="w-full overflow-hidden rounded-2xl shadow-xl border border-slate-200 bg-white transition-all duration-300">
+                    <div class="w-full overflow-hidden rounded-2xl shadow-xl border border-slate-200 bg-white">
                         <div class="w-full overflow-x-auto">
+
                             <table class="w-full min-w-[800px] md:min-w-[1100px] text-sm text-center border-collapse">
+
+                                <!-- HEAD -->
                                 <thead class="bg-slate-900 text-white">
                                     <tr>
-                                        <th class="p-4 whitespace-nowrap">#</th>
-                                        <th class="p-4 text-left whitespace-nowrap">Equipo</th>
+                                        <th class="p-4">#</th>
+                                        <th class="p-4 text-left">Equipo</th>
+
                                         @foreach ($torneo->rondas as $ronda)
-                                            <th class="p-4 whitespace-nowrap">R{{ $ronda->numero }}</th>
+                                            <th class="p-4">R{{ $ronda->numero }}</th>
                                         @endforeach
-                                        <th class="p-4 whitespace-nowrap">Global</th>
-                                        <th class="p-4 whitespace-nowrap">Individual</th>
+
+                                        <th class="p-4">Global</th>
+                                        <th class="p-4">Individual</th>
                                     </tr>
                                 </thead>
 
+                                <!-- BODY -->
                                 <tbody>
                                     @foreach ($tabla as $index => $row)
                                         @php
-                                            $pos = $index + 1;
+                                            $pos = $ranking[$index]; // 🔥 posición real con empates
                                             $tienePuntos = $row['total_global'] > 0;
-                                            $currentStyle = getMedallaStyleById($pos, $tienePuntos);
-                                            // Aumenté el borde a 8px para más impacto visual
+
+                                            // 🔥 SOLO 3 FILAS CON MEDALLA
+                                            $tieneMedalla = $pos <= 3;
+
+                                            $currentStyle = getMedallaStyleById($tieneMedalla ? $pos : 0, $tienePuntos);
+
                                             $rowInlineStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
                                         @endphp
 
                                         <tr style="{{ $rowInlineStyle }}"
                                             class="border-b border-slate-100 transition hover:bg-white/50">
 
+                                            <!-- POSICIÓN -->
                                             <td class="p-4 font-black text-xl">
-                                                @if ($tienePuntos)
-                                                    {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
+                                                @if ($tienePuntos && $tieneMedalla)
+                                                    {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : '🥉') }}
                                                 @else
                                                     <span style="color: #cbd5e1;">{{ $pos }}</span>
                                                 @endif
                                             </td>
 
+                                            <!-- EQUIPO -->
                                             <td class="p-4 text-left font-bold text-slate-800 whitespace-nowrap">
                                                 {{ $row['equipo']->nombre }}
                                             </td>
 
+                                            <!-- RONDAS -->
                                             @foreach ($row['rondas'] as $r)
                                                 <td class="p-3">
                                                     @if ($r['global'] !== null)
-                                                        <div class="font-bold text-slate-900">{{ $r['global'] }}
+                                                        <div class="font-bold text-slate-900">
+                                                            {{ $r['global'] }}
                                                         </div>
                                                         <div class="text-[10px] text-slate-500 font-medium">
                                                             ({{ $r['individual'] }})
@@ -519,18 +594,23 @@ new class extends Component {
                                                 </td>
                                             @endforeach
 
+                                            <!-- TOTAL GLOBAL -->
                                             <td class="p-4 font-black text-xl"
                                                 style="color: {{ $currentStyle['totalText'] }}">
                                                 {{ $row['total_global'] }}
                                             </td>
 
+                                            <!-- TOTAL INDIVIDUAL -->
                                             <td class="p-4 font-bold text-slate-700">
                                                 {{ $row['total_individual'] }}
                                             </td>
+
                                         </tr>
                                     @endforeach
                                 </tbody>
+
                             </table>
+
                         </div>
                     </div>
                 </div>
@@ -538,11 +618,14 @@ new class extends Component {
 
 
 
+
+
             <section x-data="{
                 open: false,
                 chart: null,
                 loading: false,
-                puntosIndividual: [], // Almacén persistente para los puntos individuales
+                puntosIndividual: [],
+                ranking: [],
             
                 init() {
                     this.$watch('open', value => {
@@ -562,98 +645,142 @@ new class extends Component {
             
                 async refreshManual() {
                     this.loading = true;
-                    // Obtenemos los datos frescos desde el servidor
                     let freshData = await @this.getGraficaData();
                     this.renderOrUpdate(freshData);
                     setTimeout(() => { this.loading = false; }, 600);
                 },
             
+                generarRanking(data) {
+                    let ranking = [];
+                    let posActual = 1;
+                    let count = 0;
+                    let lastKey = null;
+            
+                    data.forEach((e, i) => {
+                        let key = e.global + '-' + e.individual;
+            
+                        if (key !== lastKey) {
+                            posActual = count + 1;
+                        }
+            
+                        ranking[i] = posActual;
+            
+                        lastKey = key;
+                        count++;
+                    });
+            
+                    return ranking;
+                },
+            
                 renderOrUpdate(incomingData = null) {
-                    // Si no viene data manual, usamos la que viene por defecto de Livewire
                     let data = incomingData ? incomingData : @js($this->graficaEquipos);
             
-                    let nombres = data.map(e => e.nombre);
-                    let puntosGlobal = data.map(e => Number(e.global));
+                    if (!data || data.length === 0) return;
             
-                    // ACTUALIZACIÓN CRÍTICA: Guardamos en el estado de Alpine
+                    // 🔥 ORDENAR IGUAL QUE BACKEND
+                    data = [...data].sort((a, b) => {
+                        if (b.global !== a.global) return b.global - a.global;
+                        return b.individual - a.individual;
+                    });
+            
+                    // 🔥 RANKING CON EMPATES
+                    this.ranking = this.generarRanking(data);
+            
+                    // 🔥 NOMBRES CON MEDALLAS CORRECTAS
+                    let nombres = data.map((e, i) => {
+                        let pos = this.ranking[i];
+                        let tienePuntos = e.global > 0 || e.individual > 0;
+            
+                        let prefijo = '';
+            
+                        if (tienePuntos) {
+                            if (pos === 1) prefijo = '🥇 ';
+                            else if (pos === 2) prefijo = '🥈 ';
+                            else if (pos === 3) prefijo = '🥉 ';
+                            else prefijo = `#${pos} `;
+                        } else {
+                            prefijo = `#${pos} `;
+                        }
+            
+                        // 🔥 LIMPIAR PREFIJOS PREVIOS (por si vienen del backend)
+                        let nombreLimpio = e.nombre.replace(/^(🥇|🥈|🥉|#\d+\s)/, '');
+            
+                        return prefijo + nombreLimpio;
+                    });
+            
+                    let puntosGlobal = data.map(e => Number(e.global));
                     this.puntosIndividual = data.map(e => Number(e.individual));
                     let colores = data.map(e => e.color);
             
-                    if (!this.chart) {
-                        this.chart = new ApexCharts(this.$refs.mapaEquipos, {
-                            chart: {
-                                type: 'bar',
-                                height: 450,
-                                toolbar: { show: false },
-                                fontFamily: 'inherit',
-                                animations: { enabled: true, easing: 'easeinout', speed: 800 }
-                            },
-                            series: [{ name: 'Puntos Globales', data: puntosGlobal }],
-                            colors: colores,
-                            plotOptions: {
-                                bar: {
-                                    horizontal: true,
-                                    barHeight: '80%',
-                                    distributed: true,
-                                    borderRadius: 8,
-                                    dataLabels: {
-                                        position: 'bottom',
-                                        hideOverflowingText: false
-                                    }
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+            
+                    this.$refs.mapaEquipos.innerHTML = '';
+            
+                    this.chart = new ApexCharts(this.$refs.mapaEquipos, {
+                        chart: {
+                            type: 'bar',
+                            height: 450,
+                            toolbar: { show: false },
+                            fontFamily: 'inherit',
+                            animations: { enabled: true, easing: 'easeinout', speed: 800 }
+                        },
+                        series: [{ name: 'Puntos Globales', data: puntosGlobal }],
+                        colors: colores,
+                        plotOptions: {
+                            bar: {
+                                horizontal: true,
+                                barHeight: '80%',
+                                distributed: true,
+                                borderRadius: 8,
+                                dataLabels: {
+                                    position: 'bottom',
+                                    hideOverflowingText: false
                                 }
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            textAnchor: 'start',
+                            style: {
+                                colors: ['#fff'],
+                                fontWeight: '800',
+                                fontSize: '10px'
                             },
-                            dataLabels: {
-                                enabled: true,
-                                textAnchor: 'start',
-                                style: {
-                                    colors: ['#fff'],
-                                    fontWeight: '800',
-                                    fontSize: '10px'
-                                },
-                                // Usamos arrow function para que 'this' apunte a Alpine
+                            formatter: (val, opts) => {
+                                let ind = this.puntosIndividual[opts.dataPointIndex];
+                                let txtG = val === 1 ? val + ' PT GRUPAL' : val + ' PTS GRUPALES';
+                                let txtI = ind === 1 ? ind + ' PT INDV' : ind + ' PTS INDV';
+            
+                                return (val < 6) ? [txtG, txtI] : txtG + '  |  ' + txtI;
+                            },
+                            offsetX: 0,
+                            dropShadow: { enabled: true }
+                        },
+                        xaxis: {
+                            categories: nombres,
+                            labels: { style: { fontWeight: '700' } }
+                        },
+                        yaxis: {
+                            labels: {
+                                style: { colors: '#1e293b', fontWeight: '900', fontSize: '13px' },
+                                maxWidth: 150
+                            }
+                        },
+                        tooltip: {
+                            theme: 'dark',
+                            y: {
                                 formatter: (val, opts) => {
                                     let ind = this.puntosIndividual[opts.dataPointIndex];
-                                    let txtG = val === 1 ? val + ' PT GRUPAL' : val + ' PTS GRUPALES';
-                                    let txtI = ind === 1 ? ind + ' PT INDV' : ind + ' PTS INDV';
+                                    return val + ' grupales | ' + ind + ' individuales';
+                                }
+                            }
+                        },
+                        legend: { show: false }
+                    });
             
-                                    if (val < 6) {
-                                        return [txtG, txtI]; // Salto de línea para barras pequeñas
-                                    }
-                                    return txtG + '  |  ' + txtI;
-                                },
-                                offsetX: 0,
-                                dropShadow: { enabled: true }
-                            },
-                            xaxis: {
-                                categories: nombres,
-                                labels: { style: { fontWeight: '700' } }
-                            },
-                            yaxis: {
-                                labels: {
-                                    style: { colors: '#1e293b', fontWeight: '900', fontSize: '13px' },
-                                    maxWidth: 150
-                                }
-                            },
-                            tooltip: {
-                                theme: 'dark',
-                                y: {
-                                    formatter: (val, opts) => {
-                                        let ind = this.puntosIndividual[opts.dataPointIndex];
-                                        return val + ' grupales | ' + ind + ' individuales';
-                                    }
-                                }
-                            },
-                            legend: { show: false }
-                        });
-                        this.chart.render();
-                    } else {
-                        // Al actualizar, pasamos los nuevos nombres (con medallas actualizadas) y puntos
-                        this.chart.updateOptions({
-                            series: [{ data: puntosGlobal }],
-                            xaxis: { categories: nombres },
-                            colors: colores
-                        });
-                    }
+                    this.chart.render();
                 }
             }" class="mb-16 w-full px-6">
 
@@ -703,83 +830,154 @@ new class extends Component {
 
 
 
-
             <section class="mb-16 w-full px-6" x-data="{ open: false }">
                 <div @click="open = !open"
                     class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl mb-6 border-l-8 border-[#c5a059]">
                     <div class="flex items-center gap-4">
                         <span class="text-2xl text-[#c5a059]">♞</span>
                         <h2 class="text-2xl font-bold text-white uppercase tracking-tight">
-                            Ranking Individual de Jugadores
+                            Ranking Individual por Género
                         </h2>
                     </div>
-                    <span class="text-xs font-bold text-[#c5a059]" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-2">
+                            @if (!$mostrarGanadores)
+                                <button wire:click.stop="definirMejores"
+                                    class="bg-green-600 hover:bg-green-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
+                                    <span>🏆</span> Definir Ganadores
+                                </button>
+                            @else
+                                <button wire:click.stop="limpiarGanadores"
+                                    class="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
+                                    <span>🔄</span> Limpiar / Corregir
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="h-6 w-[1px] bg-slate-700 mx-2"></div>
+
+                        <span class="text-xs font-bold text-[#c5a059]" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
+                    </div>
                 </div>
 
                 <div x-show="open" x-cloak x-transition>
-                    <div class="w-full overflow-x-auto bg-white rounded-2xl shadow-xl border border-slate-200">
-                        <table class="min-w-full text-sm text-center border-collapse">
-                            <thead class="bg-slate-900 text-white">
-                                <tr>
-                                    <th class="p-4">#</th>
-                                    <th class="p-4 text-left">Jugador</th>
-                                    <th class="p-4 text-left">Equipo</th>
-                                    @foreach ($torneo->rondas as $ronda)
-                                        <th class="p-4">R{{ $ronda->numero }}</th>
-                                    @endforeach
-                                    <th class="p-4">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($this->tablaIndividual->values() as $index => $row)
-                                    @php
-                                        $pos = $index + 1;
-                                        // Validamos si el jugador tiene puntos (individuales)
-                                        $tienePuntos = $row['total'] > 0;
+                    @php
+                        $categorias = [
+                            [
+                                'titulo' => 'Categoría Masculina',
+                                'genero' => 'Masculino',
+                                'icon' => '♂️',
+                                'label' => 'Mejor jugador masculino',
+                            ],
+                            [
+                                'titulo' => 'Categoría Femenina',
+                                'genero' => 'Femenino',
+                                'icon' => '♀️',
+                                'label' => 'Mejor jugadora femenina',
+                            ],
+                        ];
 
-                                        // Reutilizamos la lógica de colores intensos
-                                        $currentStyle = getMedallaStyleById($pos, $tienePuntos);
+                        // 🔥 MAPA REAL DE POSICIONES DE EQUIPOS
+                        $rankingEquipos = $this->tablaGeneral->values()->mapWithKeys(
+                            fn($item, $index) => [
+                                $item['equipo']->id => $index + 1,
+                            ],
+                        );
+                    @endphp
 
-                                        $rowInlineStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
-                                    @endphp
+                    @foreach ($categorias as $cat)
+                        @php
+                            // 🔥 ORDEN CORRECTO
+                            $rankingFiltrado = $this->tablaIndividual
+                                ->filter(fn($item) => $item['jugador']->genero === $cat['genero'])
+                                ->sortBy(fn($i) => $rankingEquipos[$i['equipo']->id] ?? 9999) // 2️⃣ equipo mejor pos gana
+                                ->sortByDesc(fn($i) => $i['total']) // 1️⃣ puntos jugador
+                                ->values();
 
-                                    <tr style="{{ $rowInlineStyle }}"
-                                        class="border-b border-slate-100 transition hover:bg-white/50">
+                            $mejorJugador = $rankingFiltrado->first();
+                        @endphp
 
-                                        <td class="p-4 font-black text-xl">
-                                            @if ($tienePuntos)
-                                                {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
-                                            @else
-                                                <span style="color: #cbd5e1;">{{ $pos }}</span>
-                                            @endif
-                                        </td>
+                        <div class="mb-10">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-xl">{{ $cat['icon'] }}</span>
+                                <h3 class="text-lg font-black text-slate-700 uppercase">{{ $cat['titulo'] }}</h3>
+                            </div>
 
-                                        <td class="p-4 text-left font-bold text-slate-800">
-                                            {{ $row['jugador']->nombre }}
-                                        </td>
+                            <div class="overflow-x-auto bg-white rounded-2xl shadow-xl border">
+                                <table class="min-w-full text-sm text-center">
+                                    <thead class="bg-slate-900 text-white">
+                                        <tr>
+                                            <th class="p-4">#</th>
+                                            <th class="p-4 text-left">Jugador</th>
+                                            <th class="p-4 text-left">Equipo</th>
+                                            @foreach ($torneo->rondas as $ronda)
+                                                <th class="p-4">R{{ $ronda->numero }}</th>
+                                            @endforeach
+                                            <th class="p-4">Total</th>
+                                        </tr>
+                                    </thead>
 
-                                        <td class="p-4 text-left text-slate-600 font-medium">
-                                            {{ $row['equipo']->nombre }}
-                                        </td>
+                                    <tbody>
+                                        @foreach ($rankingFiltrado as $index => $row)
+                                            @php
+                                                $pos = $index + 1;
+                                                $tienePuntos = $row['total'] > 0;
+                                                $currentStyle = getMedallaStyleById($pos, $tienePuntos);
+                                            @endphp
 
-                                        @foreach ($row['porRonda'] as $p)
-                                            <td class="p-3 font-bold text-slate-700">
-                                                {{ $p !== null ? $p : '-' }}
-                                            </td>
+                                            <tr style="background-color: {{ $currentStyle['bg'] }}; border-left: 8px solid {{ $currentStyle['border'] }};"
+                                                class="border-b">
+
+                                                <td class="p-4 font-black text-xl">
+                                                    {{ $tienePuntos ? ($pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos))) : $pos }}
+                                                </td>
+
+                                                <td class="p-4 text-left font-bold">
+                                                    {{ $row['jugador']->nombre }}
+                                                </td>
+
+                                                <td class="p-4 text-left text-slate-600">
+                                                    {{ $row['equipo']->nombre }}
+                                                </td>
+
+                                                @foreach ($row['porRonda'] as $p)
+                                                    <td class="p-3 font-bold">{{ $p ?? '-' }}</td>
+                                                @endforeach
+
+                                                <td class="p-4 font-black text-xl"
+                                                    style="color: {{ $currentStyle['totalText'] }}">
+                                                    {{ $row['total'] }}
+                                                </td>
+                                            </tr>
                                         @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
 
-                                        <td class="p-4 font-black text-xl"
-                                            style="color: {{ $currentStyle['totalText'] }}">
-                                            {{ $row['total'] }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                            {{-- GANADOR --}}
+                            @if ($mostrarGanadores && $mejorJugador && $mejorJugador['total'] > 0)
+                                <div class="mt-4 px-4 py-3 bg-green-50 border-l-4 border-green-500 rounded shadow">
+                                    <p class="text-green-700 font-black uppercase text-sm flex items-center gap-2">
+                                        🏆 {{ $cat['label'] }}:
+                                        <span class="text-green-800 text-lg">
+                                            {{ $mejorJugador['jugador']->nombre }}
+                                        </span>
+
+                                        {{-- <span class="bg-green-600 text-white px-2 py-0.5 rounded text-xs">
+                                            {{ $mejorJugador['total'] }} PTS
+                                        </span>
+
+                                        <span class="text-[10px] text-green-600">
+                                            (Desempate por posición de equipo)
+                                        </span> --}}
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
                 </div>
             </section>
-
 
             <section class="mb-16 w-full px-6" x-data="{ open: false }">
                 <div @click="open = !open"

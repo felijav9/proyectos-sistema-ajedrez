@@ -198,12 +198,14 @@ new class extends Component {
             // Si tiene puntos, usamos medallas para los top 3.
             // Si NO tiene puntos (está en 0), solo mostramos el número "#1", "#2", etc.
             if ($tienePuntos) {
-                $prefijo = match ($posicion) {
-                    1 => '🥇 #1 ',
-                    2 => '🥈 #2 ',
-                    3 => '🥉 #3 ',
-                    default => "#$posicion ",
-                };
+                // $prefijo = match ($posicion) {
+                //     1 => '🥇 #1 ',
+                //     2 => '🥈 #2 ',
+                //     3 => '🥉 #3 ',
+                //     default => "#$posicion ",
+                // };
+                $prefijo = $tienePuntos ? '' : "#$posicion ";
+                
             } else {
                 $prefijo = "#$posicion ";
             }
@@ -480,6 +482,7 @@ new class extends Component {
                 chart: null,
                 loading: false,
                 puntosIndividual: [],
+                ranking: [],
             
                 init() {
                     this.renderOrUpdate();
@@ -503,10 +506,31 @@ new class extends Component {
                     }
                 },
             
+                generarRanking(data) {
+                    let ranking = [];
+                    let posActual = 1;
+                    let count = 0;
+                    let lastKey = null;
+            
+                    data.forEach((e, i) => {
+                        let key = e.global + '-' + e.individual;
+            
+                        if (key !== lastKey) {
+                            posActual = count + 1;
+                        }
+            
+                        ranking[i] = posActual;
+            
+                        lastKey = key;
+                        count++;
+                    });
+            
+                    return ranking;
+                },
+            
                 renderOrUpdate(incomingData = null) {
                     let data = incomingData ? incomingData : @js($this->graficaEquipos);
             
-                    // Si no hay datos, limpiamos la gráfica y salimos
                     if (!data || data.length === 0) {
                         if (this.chart) {
                             this.chart.destroy();
@@ -516,7 +540,27 @@ new class extends Component {
                         return;
                     }
             
-                    let nombres = data.map(e => e.nombre);
+                    // 🔥 ORDENAR IGUAL QUE TABLA
+                    data = [...data].sort((a, b) => {
+                        if (b.global !== a.global) return b.global - a.global;
+                        return b.individual - a.individual;
+                    });
+            
+                    // 🔥 GENERAR RANKING CON EMPATES
+                    this.ranking = this.generarRanking(data);
+            
+                    let nombres = data.map((e, i) => {
+                        let pos = this.ranking[i];
+                        let tieneMedalla = pos <= 3;
+            
+                        let medalla = '';
+                        if (tieneMedalla) {
+                            medalla = pos === 1 ? '🥇 ' : (pos === 2 ? '🥈 ' : '🥉 ');
+                        }
+            
+                        return medalla + e.nombre;
+                    });
+            
                     let puntosGlobal = data.map(e => Number(e.global));
                     this.puntosIndividual = data.map(e => Number(e.individual));
                     let colores = data.map(e => e.color);
@@ -560,7 +604,7 @@ new class extends Component {
                             dropShadow: { enabled: true }
                         },
                         xaxis: {
-                            categories: nombres,
+                            categories: nombres, // 🔥 aquí ya van con medalla
                             labels: { style: { fontWeight: '700' } }
                         },
                         yaxis: {
@@ -592,7 +636,6 @@ new class extends Component {
                     </h2>
 
                     @php
-                        // Verificamos si todos los equipos están en cero usando la misma lógica que tu tabla
                         $graficaEnCero = collect($this->graficaEquipos)->every(
                             fn($e) => $e['global'] == 0 && $e['individual'] == 0,
                         );
@@ -631,17 +674,36 @@ new class extends Component {
             </section>
 
 
-    
+
             <section
                 class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16 w-full px-4 md:px-6"
-                x-data="{ open: false }" wire:key="tabla-general-torneo-{{ $torneo->id }}" {{-- LLAVE FIJA: Evita que Alpine se reinicie al refrescar --}}
+                x-data="{ open: false }" wire:key="tabla-general-torneo-{{ $torneo->id }}"
                 wire:on.graficaActualizada="$refresh">
+
                 @php
-                    $tabla = $this->tablaGeneral->values();
+                    $tabla = $this->tablaGeneral->sortByDesc('total_global')->sortByDesc('total_individual')->values();
 
                     $todosEnCero = $tabla->every(
                         fn($row) => ($row['total_global'] ?? 0) == 0 && ($row['total_individual'] ?? 0) == 0,
                     );
+
+                    $ranking = [];
+                    $posActual = 1;
+                    $count = 0;
+                    $lastKey = null;
+
+                    foreach ($tabla as $i => $row) {
+                        $key = $row['total_global'] . '-' . $row['total_individual'];
+
+                        if ($key !== $lastKey) {
+                            $posActual = $count + 1;
+                        }
+
+                        $ranking[$i] = $posActual;
+
+                        $lastKey = $key;
+                        $count++;
+                    }
 
                     if (!function_exists('getMedallaStyleById')) {
                         function getMedallaStyleById($pos, $tienePuntos)
@@ -649,6 +711,7 @@ new class extends Component {
                             if (!$tienePuntos) {
                                 return ['bg' => 'transparent', 'border' => 'transparent', 'totalText' => '#94a3b8'];
                             }
+
                             return match ($pos) {
                                 1 => [
                                     'bg' => 'rgba(255, 215, 0, 0.25)',
@@ -694,8 +757,7 @@ new class extends Component {
                     </div>
 
                     <div class="flex items-center gap-3">
-                        {{-- BOTÓN ACTUALIZAR DATOS --}}
-                        <button wire:click="$refresh" wire:loading.attr="disabled" @click.stop {{-- EVITA QUE EL CLICK CIERRE LA TABLA --}}
+                        <button wire:click="$refresh" wire:loading.attr="disabled" @click.stop
                             class="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-[#c5a059] hover:text-white rounded-xl transition-all active:scale-95 border border-slate-200 shadow-sm disabled:opacity-50">
                             <svg wire:loading.class="animate-spin" class="w-3.5 h-3.5" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
@@ -706,7 +768,6 @@ new class extends Component {
                             <span wire:loading wire:target="$refresh">ACTUALIZANDO...</span>
                         </button>
 
-                        {{-- BOTÓN MOSTRAR/OCULTAR --}}
                         <button @click="open = !open"
                             class="text-xs font-bold text-slate-400 hover:text-[#c5a059] transition-colors border border-transparent px-2 py-2"
                             x-text="open ? 'OCULTAR DETALLES' : 'MOSTRAR DETALLES'">
@@ -714,7 +775,7 @@ new class extends Component {
                     </div>
                 </div>
 
-                {{-- CUERPO DE LA TABLA --}}
+                {{-- TABLA --}}
                 <div x-show="open" x-transition x-cloak
                     class="overflow-hidden rounded-2xl border border-slate-100 shadow-inner bg-slate-50/30">
                     <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 600px;">
@@ -730,46 +791,62 @@ new class extends Component {
                                     <th class="p-4 text-center">Indiv.</th>
                                 </tr>
                             </thead>
+
                             <tbody class="divide-y divide-slate-100 bg-white"
                                 wire:loading.class="opacity-40 transition-opacity">
+
                                 @foreach ($tabla as $index => $row)
                                     @php
-                                        $pos = $index + 1;
+                                        $pos = $ranking[$index]; // 🔥 posición real
                                         $tienePuntos = $row['total_global'] > 0;
-                                        $currentStyle = getMedallaStyleById($pos, $tienePuntos);
+
+                                        // 🔥 solo 3 posiciones con medalla
+                                        $tieneMedalla = $pos <= 3;
+
+                                        $currentStyle = getMedallaStyleById($tieneMedalla ? $pos : 0, $tienePuntos);
+
                                         $rowStyle = "background-color: {$currentStyle['bg']} !important; border-left: 8px solid {$currentStyle['border']};";
                                     @endphp
+
                                     <tr style="{{ $rowStyle }}" class="transition hover:bg-slate-50/80">
+
                                         <td class="p-4 text-center font-black text-xl">
-                                            @if ($tienePuntos)
-                                                {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos)) }}
+                                            @if ($tienePuntos && $tieneMedalla)
+                                                {{ $pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : '🥉') }}
                                             @else
                                                 <span class="text-slate-300">{{ $pos }}</span>
                                             @endif
                                         </td>
+
                                         <td class="p-4 text-left font-bold text-slate-800">
                                             {{ $row['equipo']->nombre }}
                                         </td>
+
                                         @foreach ($row['rondas'] as $r)
                                             <td class="p-3 text-center">
                                                 @if ($r['global'] !== null)
                                                     <div class="font-bold text-slate-900">{{ $r['global'] }}</div>
                                                     <div class="text-[10px] text-slate-500 font-medium">
-                                                        ({{ $r['individual'] }})</div>
+                                                        ({{ $r['individual'] }})
+                                                    </div>
                                                 @else
                                                     <span class="text-slate-200">-</span>
                                                 @endif
                                             </td>
                                         @endforeach
+
                                         <td class="p-4 text-center font-black text-xl"
                                             style="color: {{ $currentStyle['totalText'] }}">
                                             {{ $row['total_global'] }}
                                         </td>
+
                                         <td class="p-4 text-center font-bold text-slate-500">
                                             {{ $row['total_individual'] }}
                                         </td>
+
                                     </tr>
                                 @endforeach
+
                             </tbody>
                         </table>
                     </div>
