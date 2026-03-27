@@ -12,5 +12,9 @@ Volt::route('/torneo-equipos-marzo', 'torneo-emparejamientos')->name('torneo.ind
 
 Volt::route('/registrar-resultados', 'registrar-resultados')->name('registrar.resultados');
 
+
+Volt::route('/live-results-marzo2026', 'live-results-marzo2026')->name('live.results');
+
+
 // Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');
 // Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');

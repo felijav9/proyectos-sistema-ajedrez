@@ -58,6 +58,206 @@ new class extends Component {
 
 
 
+    {{-- BANNER DE RESULTADOS EN VIVO - VERSIÓN CSS PURO --}}
+<div class="live-banner-container">
+    <a href="{{ route('live.results') }}" class="live-banner-link">
+        <div class="banner-shine"></div>
+        
+        <div class="banner-content-left">
+            <div class="live-badge">
+                <span class="ping-container">
+                    <span class="ping-circle"></span>
+                    <span class="main-circle"></span>
+                </span>
+                LIVE RESULTS
+            </div>
+
+            <div class="banner-text">
+                <span class="text-main">Sigue la acción en tiempo real</span>
+                <span class="text-sub">Actualizaciones instantáneas de cada tablero</span>
+            </div>
+        </div>
+
+        <div class="banner-content-right">
+            <span class="btn-text">Ver Marcadores</span>
+            <div class="btn-arrow">→</div>
+        </div>
+    </a>
+</div>
+
+<style>
+    /* Contenedor Principal */
+    .live-banner-container {
+        max-width: 80rem; /* max-w-7xl */
+        margin: 0 auto 2rem auto;
+        padding: 0 1rem;
+    }
+
+    /* El enlace/botón principal */
+    .live-banner-link {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.25rem 2rem 0.25rem 0.25rem;
+        background-color: #dc2626; /* Rojo vibrante */
+        border-radius: 1rem;
+        text-decoration: none;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.4);
+        font-family: sans-serif;
+    }
+
+    .live-banner-link:hover {
+        transform: scale(1.01);
+        box-shadow: 0 15px 30px -5px rgba(220, 38, 38, 0.6);
+    }
+
+    /* Badge "LIVE" Blanco */
+    .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background-color: white;
+        color: #dc2626;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.75rem;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        z-index: 10;
+    }
+
+    /* Animación del Punto Rojo */
+    .ping-container {
+        position: relative;
+        display: flex;
+        height: 0.75rem;
+        width: 0.75rem;
+    }
+
+    .ping-circle {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        background-color: #f87171;
+        border-radius: 50%;
+        opacity: 0.75;
+        animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    .main-circle {
+        position: relative;
+        height: 0.75rem;
+        width: 0.75rem;
+        background-color: #dc2626;
+        border-radius: 50%;
+    }
+
+    @keyframes ping {
+        75%, 100% {
+            transform: scale(2.5);
+            opacity: 0;
+        }
+    }
+
+    /* Textos del Banner */
+    .banner-content-left {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        z-index: 10;
+    }
+
+    .banner-text {
+        display: none; /* Oculto en móviles pequeños */
+    }
+
+    @media (min-width: 768px) {
+        .banner-text {
+            display: flex;
+            flex-direction: column;
+        }
+    }
+
+    .text-main {
+        color: white;
+        font-weight: 800;
+        font-size: 1.125rem;
+        text-transform: uppercase;
+        font-style: italic;
+    }
+
+    .text-sub {
+        color: #fee2e2; /* Rojo muy claro */
+        font-size: 0.75rem;
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    /* Botón de la derecha */
+    .banner-content-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 10;
+    }
+
+    .btn-text {
+        color: white;
+        font-weight: 800;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        transition: transform 0.3s ease;
+    }
+
+    .live-banner-link:hover .btn-text {
+        transform: translateX(5px);
+    }
+
+    .btn-arrow {
+        width: 2.5rem;
+        height: 2.5rem;
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .live-banner-link:hover .btn-arrow {
+        background-color: white;
+        color: #dc2626;
+    }
+
+    /* Efecto de Brillo Animado */
+    .banner-shine {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        height: 100%;
+        width: 50%;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+        transform: skewX(-15deg);
+        z-index: 5;
+    }
+
+    .live-banner-link:hover .banner-shine {
+        animation: shine-effect 1s ease-in-out;
+    }
+
+    @keyframes shine-effect {
+        100% {
+            left: 150%;
+        }
+    }
+</style>
+
 
 
     <main class="max-w-7xl mx-auto px-4">
