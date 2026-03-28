@@ -1,5 +1,4 @@
 <?php
-
 use Livewire\Component;
 use App\Models\Torneo;
 use App\Models\Emparejamiento;
@@ -257,7 +256,6 @@ new class extends Component {
             } else {
                 $prefijo = "#$posicion ";
             }
-
             // 🎨 COLORES (igual que tenías)
             $color = match (true) {
                 str_contains($nombreLower, 'campeones') => '#dc2626',
