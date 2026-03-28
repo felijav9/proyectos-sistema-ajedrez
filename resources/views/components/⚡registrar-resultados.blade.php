@@ -73,52 +73,28 @@ new class extends Component {
         $this->openModal = false;
     }
 
-    public function guardarResultado($id, $resultado)
+   public function guardarResultado($id, $resultado)
 {
     $emp = Emparejamiento::find($id);
 
-    // 🔥 Si es "-" (vacío), borrar resultado
+    // 🔥 Si es "-" (vacío)
     if (!$resultado) {
         $emp->resultado = null;
-        $emp->puntos_blancas = 0;
-        $emp->puntos_negras = 0;
         $emp->save();
 
-        // 🔥 recalcular toda la ronda desde cero
-        $this->recalcularRondaDesdeCero($emp->ronda_id);
+        // 🔥 borrar resultados de equipos
+        ResultadoEquipo::where('ronda_id', $emp->ronda_id)->delete();
+
     } else {
         $emp->resultado = $resultado;
-
-        // 🔥 asignar puntos según resultado
-        if ($resultado === '1-0') {
-            $emp->puntos_blancas = 1;
-            $emp->puntos_negras = 0;
-        } elseif ($resultado === '0-1') {
-            $emp->puntos_blancas = 0;
-            $emp->puntos_negras = 1;
-        } elseif ($resultado === '1-1') {
-            $emp->puntos_blancas = 0.5;
-            $emp->puntos_negras = 0.5;
-        }
-
         $emp->save();
 
+        // 🔥 recalcular normalmente
         $this->calcularRonda($emp->ronda_id);
     }
 
     $this->verRonda($emp->ronda_id, $this->rondaSeleccionada);
 }
-
-
-    public function recalcularRondaDesdeCero($rondaId)
-{
-    // 🔥 borrar resultados de equipos de esa ronda
-    ResultadoEquipo::where('ronda_id', $rondaId)->delete();
-
-    // 🔥 volver a calcular solo con partidas que sí tienen resultado
-    $this->calcularRonda($rondaId);
-}
-    
 
     public function calcularRonda($rondaId)
     {
