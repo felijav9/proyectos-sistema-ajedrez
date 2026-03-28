@@ -465,22 +465,33 @@ new class extends Component {
                     $tabla = $this->tablaGeneral->sortByDesc('total_global')->sortByDesc('total_individual')->values();
 
                     // 🔥 GENERAR RANKING CON EMPATES
+                    $hayPuntos = $tabla->sum('total_global') > 0 || $tabla->sum('total_individual') > 0;
+
                     $ranking = [];
-                    $posActual = 1;
-                    $count = 0;
-                    $lastKey = null;
-
-                    foreach ($tabla as $i => $row) {
-                        $key = $row['total_global'] . '-' . $row['total_individual'];
-
-                        if ($key !== $lastKey) {
-                            $posActual = $count + 1;
+                    
+                    if (!$hayPuntos) {
+                        // 🟢 SIN PUNTOS → ranking normal
+                        foreach ($tabla as $i => $row) {
+                            $ranking[$i] = $i + 1;
                         }
-
-                        $ranking[$i] = $posActual;
-
-                        $lastKey = $key;
-                        $count++;
+                    } else {
+                        // 🔥 CON PUNTOS → tu lógica actual con empates
+                        $posActual = 1;
+                        $count = 0;
+                        $lastKey = null;
+                    
+                        foreach ($tabla as $i => $row) {
+                            $key = $row['total_global'] . '-' . $row['total_individual'];
+                    
+                            if ($key !== $lastKey) {
+                                $posActual = $count + 1;
+                            }
+                    
+                            $ranking[$i] = $posActual;
+                    
+                            $lastKey = $key;
+                            $count++;
+                        }
                     }
 
                     if (!function_exists('getMedallaStyleById')) {
