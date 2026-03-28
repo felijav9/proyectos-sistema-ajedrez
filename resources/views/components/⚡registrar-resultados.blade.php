@@ -703,7 +703,7 @@ new class extends Component {
                     });
                 
                     return ranking;
-                }
+                },
             
                 renderOrUpdate(incomingData = null) {
                     let data = incomingData ? incomingData : @js($this->graficaEquipos);
