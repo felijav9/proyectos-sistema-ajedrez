@@ -29,7 +29,7 @@ new class extends Component {
 
     public $mostrarGanadores = false;
 
-    
+    public $searchEmparejamiento = '';
 
     public function mount()
     {
@@ -1251,6 +1251,8 @@ new class extends Component {
 
                 {{-- Contenedor de Rondas --}}
                 <div class="relative p-1 bg-slate-100 rounded-3xl border border-slate-200">
+
+
                     {{-- Fondo decorativo de tablero muy sutil --}}
                     <div class="absolute inset-0 opacity-[0.03] rounded-3xl"
                         style="background-image: conic-gradient(#000 0.25turn, #fff 0.25turn 0.5turn, #000 0.5turn 0.75turn, #fff 0.75turn); background-size: 40px 40px;">
@@ -1300,6 +1302,9 @@ new class extends Component {
             <div
                 class="relative bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border-t-8 border-[#c5a059]">
 
+               
+
+
                 {{-- Modal Header --}}
                 <div class="p-6 border-b flex justify-between items-center bg-slate-50">
                     <div>
@@ -1312,9 +1317,30 @@ new class extends Component {
                     </button>
                 </div>
 
+                {{-- 🔍 BUSCADOR DENTRO DEL MODAL (AQUÍ VA) --}}
+                <div class="p-6 pb-0">
+                    <div class="relative w-full max-w-md">
+                        <input type="text" placeholder="Buscar jugador, equipo o mesa..."
+                            wire:model.live="searchEmparejamiento"
+                            class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 bg-white shadow-sm focus:ring-2 focus:ring-[#c5a059] focus:border-[#c5a059] outline-none text-sm font-medium">
+
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            🔍
+                        </span>
+                    </div>
+                </div>
+
                 {{-- Modal Body --}}
                 <div class="p-6 overflow-y-auto bg-white">
-                    @foreach ($emparejamientos->groupBy('estacion') as $estacion => $partidas)
+                    @foreach ($emparejamientos->filter(function ($emp) {
+            $search = strtolower($this->searchEmparejamiento);
+
+            if (!$search) {
+                return true;
+            }
+
+            return str_contains(strtolower($emp->jugadorBlancas?->nombre ?? ''), $search) || str_contains(strtolower($emp->jugadorNegras?->nombre ?? ''), $search) || str_contains(strtolower($emp->jugadorBlancas?->equipo?->nombre ?? ''), $search) || str_contains(strtolower($emp->jugadorNegras?->equipo?->nombre ?? ''), $search) || str_contains((string) $emp->mesa, $search);
+        })->groupBy('estacion') as $estacion => $partidas)
                         @php
                             $equipo1 =
                                 optional(optional($partidas->first())->jugadorBlancas)->equipo->nombre ?? 'Equipo A';
