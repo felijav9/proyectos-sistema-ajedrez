@@ -692,7 +692,7 @@ new class extends Component {
 
             <section
                 class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-16 w-full px-4 md:px-6"
-                x-data="{ open: false }" wire:key="tabla-general-torneo-{{ $torneo->id }}"
+                x-data="{ open: true }" wire:key="tabla-general-torneo-{{ $torneo->id }}"
                 wire:on.graficaActualizada="$refresh">
 
                 @php
