@@ -5,7 +5,6 @@ use App\Models\Emparejamiento;
 use App\Models\Equipo;
 use App\Models\ResultadoEquipo;
 use App\Models\Jugador;
-
 new class extends Component {
     public $openEquipos = false;
     public $torneo;
@@ -47,7 +46,6 @@ new class extends Component {
 
         session()->flash('message', '¡Ranking final definido correctamente!');
     }
-
     public function limpiarGanadores()
     {
         // Revertimos en la base de datos
