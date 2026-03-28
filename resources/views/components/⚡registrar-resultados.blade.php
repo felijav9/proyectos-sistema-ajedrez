@@ -338,20 +338,20 @@ new class extends Component {
         $this->validate([
             'nuevaEdad' => 'nullable|integer|min:5|max:100',
             'nuevoGenero' => 'nullable|string',
-            'nuevoElo' => 'nullable|integer|min:0|max:3500', // <--- Validar ELO
+            'nuevoElo' => 'nullable|integer|min:0|max:3500',
         ]);
-
+    
         $jugador = Jugador::find($this->editandoPerfilId);
+    
         $jugador->update([
-            'edad' => $this->nuevaEdad,
-            'genero' => $this->nuevoGenero,
-            'elo' => $this->nuevoElo, // <--- Guardar ELO
+            'edad' => $this->nuevaEdad !== '' ? $this->nuevaEdad : null,
+            'genero' => $this->nuevoGenero !== '' ? $this->nuevoGenero : null,
+            'elo' => $this->nuevoElo !== '' ? $this->nuevoElo : null,
         ]);
-
+    
         $this->equipos = Equipo::with('jugadores')->get();
         $this->cancelarPerfil();
     }
-
     public function editarJugador($id, $nombreActual)
     {
         $this->editandoJugadorId = $id;
