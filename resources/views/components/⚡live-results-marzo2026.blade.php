@@ -906,19 +906,7 @@ new class extends Component {
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <!-- <div class="flex gap-2">
-                            @if (!$mostrarGanadores)
-                                <button wire:click.stop="definirMejores"
-                                    class="bg-green-600 hover:bg-green-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
-                                    <span>🏆</span> Definir Ganadores
-                                </button>
-                            @else
-                                <button wire:click.stop="limpiarGanadores"
-                                    class="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
-                                    <span>🔄</span> Limpiar / Corregir
-                                </button>
-                            @endif
-                        </div> -->
+                        
 
                         <div class="h-6 w-[1px] bg-slate-700 mx-2"></div>
 
