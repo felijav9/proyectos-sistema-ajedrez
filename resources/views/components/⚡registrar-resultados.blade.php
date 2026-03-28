@@ -74,15 +74,51 @@ new class extends Component {
     }
 
     public function guardarResultado($id, $resultado)
-    {
-        $emp = Emparejamiento::find($id);
+{
+    $emp = Emparejamiento::find($id);
+
+    // 🔥 Si es "-" (vacío), borrar resultado
+    if (!$resultado) {
+        $emp->resultado = null;
+        $emp->puntos_blancas = 0;
+        $emp->puntos_negras = 0;
+        $emp->save();
+
+        // 🔥 recalcular toda la ronda desde cero
+        $this->recalcularRondaDesdeCero($emp->ronda_id);
+    } else {
         $emp->resultado = $resultado;
+
+        // 🔥 asignar puntos según resultado
+        if ($resultado === '1-0') {
+            $emp->puntos_blancas = 1;
+            $emp->puntos_negras = 0;
+        } elseif ($resultado === '0-1') {
+            $emp->puntos_blancas = 0;
+            $emp->puntos_negras = 1;
+        } elseif ($resultado === '1-1') {
+            $emp->puntos_blancas = 0.5;
+            $emp->puntos_negras = 0.5;
+        }
+
         $emp->save();
 
         $this->calcularRonda($emp->ronda_id);
-
-        $this->verRonda($emp->ronda_id, $this->rondaSeleccionada);
     }
+
+    $this->verRonda($emp->ronda_id, $this->rondaSeleccionada);
+}
+
+
+    public function recalcularRondaDesdeCero($rondaId)
+{
+    // 🔥 borrar resultados de equipos de esa ronda
+    ResultadoEquipo::where('ronda_id', $rondaId)->delete();
+
+    // 🔥 volver a calcular solo con partidas que sí tienen resultado
+    $this->calcularRonda($rondaId);
+}
+    
 
     public function calcularRonda($rondaId)
     {
@@ -1437,7 +1473,7 @@ new class extends Component {
                             <!-- mostrar resultados por equipos -->
 
                             {{-- RESULTADOS DEL ENCUENTRO POR EQUIPOS --}}
-                            @if ($resultados->count())
+                            @if ($resultados->where('puntos_individuales', '>', 0)->count())
                                 <div
                                     class="mt-6 relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-inner">
                                     {{-- Decoración lateral sutil --}}
