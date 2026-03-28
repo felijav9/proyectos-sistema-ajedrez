@@ -550,21 +550,31 @@ new class extends Component {
                     this.ranking = this.generarRanking(data);
             
                     let hayDatos = data.some(e => 
-                        Number(e.global) > 0 || Number(e.individual) > 0
-                    );
+                            Number(e.global) > 0 || Number(e.individual) > 0
+                        );
+                        
+                        let nombres = data.map((e, i) => {
+                            let pos = this.ranking[i];
+                        
+                            let prefijo = '';
+                        
+                            if (hayDatos) {
+                                // 🔥 con datos → medallas solo top 3
+                                if (pos === 1) prefijo = '🥇 ';
+                                else if (pos === 2) prefijo = '🥈 ';
+                                else if (pos === 3) prefijo = '🥉 ';
+                                else prefijo = `#${pos} `;
+                            } else {
+                                // 🔥 sin datos → solo numeración
+                                prefijo = `#${pos} `;
+                            }
+                        
+                            let nombreLimpio = e.nombre.replace(/^(🥇|🥈|🥉|#\d+\s)/, '');
+                        
+                            return prefijo + nombreLimpio;
+                        });
                     
-                    let nombres = data.map((e, i) => {
-                        let pos = this.ranking[i];
-                    
-                        let tieneMedalla = hayDatos && pos <= 3; // 🔥 clave
-                    
-                        let medalla = '';
-                        if (tieneMedalla) {
-                            medalla = pos === 1 ? '🥇 ' : (pos === 2 ? '🥈 ' : '🥉 ');
-                        }
-                    
-                        return medalla + e.nombre.replace(/^(🥇|🥈|🥉|#\d+\s)/, '');
-                    });
+                   
                                 
                     let puntosGlobal = data.map(e => Number(e.global));
                     this.puntosIndividual = data.map(e => Number(e.individual));
