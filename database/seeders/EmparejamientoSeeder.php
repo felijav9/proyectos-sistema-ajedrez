@@ -54,11 +54,11 @@ class EmparejamientoSeeder extends Seeder
                 ['Gambito de Dama','Changos FC'],
             ],
 
-            // correccion
+            // corrección aplicada
             4 => [
                 ['Bloops','Changos FC'],
                 ['Los Campeones','Gambito de Dama'],
-                ['Apertura Maestra','Gambitos'],
+                ['Changos FC','Apertura Maestra'], // 👈 cambio aplicado
             ],
 
             5 => [
@@ -98,7 +98,6 @@ class EmparejamientoSeeder extends Seeder
 
                     } else {
 
-                        // Cruce de tableros segunda vuelta
                         $visitanteTablero = match($tablero) {
                             'A' => 'B',
                             'B' => 'A',
@@ -109,7 +108,6 @@ class EmparejamientoSeeder extends Seeder
                         $localTablero = $tablero;
                     }
 
-                    // Alternar colores
                     $color = ($numRonda % 2 == 1)
                         ? $colores[$tablero]
                         : ($colores[$tablero] == 'blancas' ? 'negras' : 'blancas');
