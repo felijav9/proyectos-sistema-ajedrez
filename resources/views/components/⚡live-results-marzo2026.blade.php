@@ -549,18 +549,23 @@ new class extends Component {
                     // 🔥 GENERAR RANKING CON EMPATES
                     this.ranking = this.generarRanking(data);
             
+                    let hayDatos = data.some(e => 
+                        Number(e.global) > 0 || Number(e.individual) > 0
+                    );
+                    
                     let nombres = data.map((e, i) => {
                         let pos = this.ranking[i];
-                        let tieneMedalla = pos <= 3;
-            
+                    
+                        let tieneMedalla = hayDatos && pos <= 3; // 🔥 clave
+                    
                         let medalla = '';
                         if (tieneMedalla) {
                             medalla = pos === 1 ? '🥇 ' : (pos === 2 ? '🥈 ' : '🥉 ');
                         }
-            
-                        return medalla + e.nombre;
+                    
+                        return medalla + e.nombre.replace(/^(🥇|🥈|🥉|#\d+\s)/, '');
                     });
-            
+                                
                     let puntosGlobal = data.map(e => Number(e.global));
                     this.puntosIndividual = data.map(e => Number(e.individual));
                     let colores = data.map(e => e.color);
