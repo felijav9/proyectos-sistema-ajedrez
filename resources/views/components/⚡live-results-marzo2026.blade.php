@@ -19,6 +19,7 @@ new class extends Component {
 
     public $editandoJugadorId = null;
     public $nuevoNombreJugador;
+    public $mostrarGanadores = false;
 
     public function mount()
     {
@@ -26,7 +27,29 @@ new class extends Component {
 
         // cargar equipos con jugadores
         $this->equipos = Equipo::with('jugadores')->get();
+                $this->mostrarGanadores = $this->torneo->mostrar_ganadores ?? false;
+
     }
+
+    
+    public function definirMejores()
+    {
+        // Aquí podrías guardar en la BD que el torneo terminó
+        $this->torneo->update(['mostrar_ganadores' => true]);
+        $this->mostrarGanadores = true;
+
+        session()->flash('message', '¡Ranking final definido correctamente!');
+    }
+
+    public function limpiarGanadores()
+    {
+        // Revertimos en la base de datos
+        $this->torneo->update(['mostrar_ganadores' => false]);
+        $this->mostrarGanadores = false;
+
+        session()->flash('message', 'Se ha ocultado el ranking de mejores jugadores.');
+    }
+    
 
     public function verRonda($rondaId, $numero)
     {
