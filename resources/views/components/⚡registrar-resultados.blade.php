@@ -673,25 +673,37 @@ new class extends Component {
             
                 generarRanking(data) {
                     let ranking = [];
+                
+                    // 🔥 detectar si TODOS están en 0
+                    let todosEnCero = data.every(e => 
+                        Number(e.global) === 0 && Number(e.individual) === 0
+                    );
+                
+                    // 🔥 SI TODOS SON 0 → ranking normal (1,2,3...)
+                    if (todosEnCero) {
+                        return data.map((_, i) => i + 1);
+                    }
+                
+                    // 🔥 SI HAY PUNTOS → ranking con empates
                     let posActual = 1;
                     let count = 0;
                     let lastKey = null;
-            
+                
                     data.forEach((e, i) => {
                         let key = e.global + '-' + e.individual;
-            
+                
                         if (key !== lastKey) {
                             posActual = count + 1;
                         }
-            
+                
                         ranking[i] = posActual;
-            
+                
                         lastKey = key;
                         count++;
                     });
-            
+                
                     return ranking;
-                },
+                }
             
                 renderOrUpdate(incomingData = null) {
                     let data = incomingData ? incomingData : @js($this->graficaEquipos);
