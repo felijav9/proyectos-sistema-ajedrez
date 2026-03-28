@@ -1554,7 +1554,6 @@ new class extends Component {
                     <span class="hidden md:block text-slate-700">|</span>
                     <span class="text-slate-400">Desarrollado por Axel Javier Alvarez</span>
                 </div>
-
                 {{-- Badge de Calidad (Opcional) --}}
                 <div class="mt-6">
                     <span class="px-3 py-1 border border-slate-800 rounded-full text-[9px] text-slate-600 uppercase">
