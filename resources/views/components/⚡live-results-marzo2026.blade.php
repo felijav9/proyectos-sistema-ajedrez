@@ -871,6 +871,157 @@ new class extends Component {
 
         </div>
 
+
+            <section class="mb-16 w-full px-6" x-data="{ open: false }">
+                <div @click="open = !open"
+                    class="flex items-center justify-between cursor-pointer group bg-slate-900 p-6 rounded-2xl shadow-xl mb-6 border-l-8 border-[#c5a059]">
+                    <div class="flex items-center gap-4">
+                        <span class="text-2xl text-[#c5a059]">♞</span>
+                        <h2 class="text-2xl font-bold text-white uppercase tracking-tight">
+                            Ranking Individual por Género
+                        </h2>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-2">
+                            @if (!$mostrarGanadores)
+                                <button wire:click.stop="definirMejores"
+                                    class="bg-green-600 hover:bg-green-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
+                                    <span>🏆</span> Definir Ganadores
+                                </button>
+                            @else
+                                <button wire:click.stop="limpiarGanadores"
+                                    class="bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition-all active:scale-95 uppercase shadow-lg flex items-center gap-1">
+                                    <span>🔄</span> Limpiar / Corregir
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="h-6 w-[1px] bg-slate-700 mx-2"></div>
+
+                        <span class="text-xs font-bold text-[#c5a059]" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
+                    </div>
+                </div>
+
+                <div x-show="open" x-cloak x-transition>
+                    @php
+                        $categorias = [
+                            [
+                                'titulo' => 'Categoría Masculina',
+                                'genero' => 'Masculino',
+                                'icon' => '♂️',
+                                'label' => 'Mejor jugador masculino',
+                            ],
+                            [
+                                'titulo' => 'Categoría Femenina',
+                                'genero' => 'Femenino',
+                                'icon' => '♀️',
+                                'label' => 'Mejor jugadora femenina',
+                            ],
+                        ];
+
+                        // 🔥 MAPA REAL DE POSICIONES DE EQUIPOS
+                        $rankingEquipos = $this->tablaGeneral->values()->mapWithKeys(
+                            fn($item, $index) => [
+                                $item['equipo']->id => $index + 1,
+                            ],
+                        );
+                    @endphp
+
+                    @foreach ($categorias as $cat)
+                        @php
+                            // 🔥 ORDEN CORRECTO
+                            $rankingFiltrado = $this->tablaIndividual
+                                ->filter(fn($item) => $item['jugador']->genero === $cat['genero'])
+                                ->sortBy(fn($i) => $rankingEquipos[$i['equipo']->id] ?? 9999) // 2️⃣ equipo mejor pos gana
+                                ->sortByDesc(fn($i) => $i['total']) // 1️⃣ puntos jugador
+                                ->values();
+
+                            $mejorJugador = $rankingFiltrado->first();
+                        @endphp
+
+                        <div class="mb-10">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-xl">{{ $cat['icon'] }}</span>
+                                <h3 class="text-lg font-black text-slate-700 uppercase">{{ $cat['titulo'] }}</h3>
+                            </div>
+
+                            <div class="overflow-x-auto bg-white rounded-2xl shadow-xl border">
+                                <table class="min-w-full text-sm text-center">
+                                    <thead class="bg-slate-900 text-white">
+                                        <tr>
+                                            <th class="p-4">#</th>
+                                            <th class="p-4 text-left">Jugador</th>
+                                            <th class="p-4 text-left">Equipo</th>
+                                            @foreach ($torneo->rondas as $ronda)
+                                                <th class="p-4">R{{ $ronda->numero }}</th>
+                                            @endforeach
+                                            <th class="p-4">Total</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        @foreach ($rankingFiltrado as $index => $row)
+                                            @php
+                                                $pos = $index + 1;
+                                                $tienePuntos = $row['total'] > 0;
+                                                $currentStyle = getMedallaStyleById($pos, $tienePuntos);
+                                            @endphp
+
+                                            <tr style="background-color: {{ $currentStyle['bg'] }}; border-left: 8px solid {{ $currentStyle['border'] }};"
+                                                class="border-b">
+
+                                                <td class="p-4 font-black text-xl">
+                                                    {{ $tienePuntos ? ($pos == 1 ? '🥇' : ($pos == 2 ? '🥈' : ($pos == 3 ? '🥉' : $pos))) : $pos }}
+                                                </td>
+
+                                                <td class="p-4 text-left font-bold">
+                                                    {{ $row['jugador']->nombre }}
+                                                </td>
+
+                                                <td class="p-4 text-left text-slate-600">
+                                                    {{ $row['equipo']->nombre }}
+                                                </td>
+
+                                                @foreach ($row['porRonda'] as $p)
+                                                    <td class="p-3 font-bold">{{ $p ?? '-' }}</td>
+                                                @endforeach
+
+                                                <td class="p-4 font-black text-xl"
+                                                    style="color: {{ $currentStyle['totalText'] }}">
+                                                    {{ $row['total'] }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {{-- GANADOR --}}
+                            @if ($mostrarGanadores && $mejorJugador && $mejorJugador['total'] > 0)
+                                <div class="mt-4 px-4 py-3 bg-green-50 border-l-4 border-green-500 rounded shadow">
+                                    <p class="text-green-700 font-black uppercase text-sm flex items-center gap-2">
+                                        🏆 {{ $cat['label'] }}:
+                                        <span class="text-green-800 text-lg">
+                                            {{ $mejorJugador['jugador']->nombre }}
+                                        </span>
+
+                                        {{-- <span class="bg-green-600 text-white px-2 py-0.5 rounded text-xs">
+                                            {{ $mejorJugador['total'] }} PTS
+                                        </span>
+
+                                        <span class="text-[10px] text-green-600">
+                                            (Desempate por posición de equipo)
+                                        </span> --}}
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+                                            
+
         {{-- SECCIÓN INFERIOR: EMPAREJAMIENTOS (CON DISEÑO ORIGINAL) --}}
         <section x-data="{ open: false }" class="w-full">
             <div @click="open = !open"
