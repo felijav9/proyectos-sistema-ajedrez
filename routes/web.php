@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-// use App\Livewire\TorneoEmparejamientos;
+use App\Livewire\TorneoEmparejamientos;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
