@@ -13,7 +13,7 @@ Route::get('/', function () {
 // Volt::route('/registrar-resultados', 'registrar-resultados')->name('registrar.resultados');
 
 
-// Volt::route('/live-results-marzo2026ddddd', 'live-results-marzo2026')->name('live.results');
+ Volt::route('/live-results-marzo2026ddddd', 'live-results-marzo2026')->name('live.results');
 
 
 // Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');
