@@ -16,4 +16,4 @@ Route::get('/', function () {
 Volt::route('/live-results-marzo2026ddddd', 'live-results-marzo2026')->name('live.results');
 
 
-// Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');
+ Route::get('/torneo', TorneoEmparejamientos::class)->name('torneo.index');
